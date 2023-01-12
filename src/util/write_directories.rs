@@ -35,8 +35,8 @@ impl Default for WriteDirsOverflowStrategy {
 ///                         If [`None`] is passed, the best strategy is chosen automatically.
 ///
 /// # Errors
-/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or there was
-/// any kind of I/O error while writing to `output`.
+/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or an I/O error
+/// occurred while writing to `output`.
 ///
 pub fn write_directories(
     output: &mut (impl Write + Seek),

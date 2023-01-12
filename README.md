@@ -2,7 +2,7 @@
 
 This crate includes a low level implementation of [the PMTiles format](https://github.com/protomaps/PMTiles) based on the standard [Read](https://doc.rust-lang.org/std/io/trait.Read.html) and [Write](https://doc.rust-lang.org/std/io/trait.Write.html) trait.
 
-It also contains [some utilities](https://docs.rs/pmtiles2/util/), which might become handy when working with PMTiles archives. Among others these include function for (de-)compression with all algorithms supported by PMTiles, as well as function to convert from and to tile ids.
+It also contains [some utilities](https://docs.rs/pmtiles2/util/), which might become handy when working with PMTiles archives. Among others these include functions for (de-)compression with all algorithms supported by PMTiles, as well as functions to convert from and to tile ids.
 
 ## Documentation
 See [RustDoc Documentation](https://docs.rs/pmtiles2).

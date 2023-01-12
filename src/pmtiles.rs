@@ -276,7 +276,7 @@ impl<R: Read + Seek> PMTiles<R> {
     ///
     /// # Errors
     /// Will return [`Err`] if [`Self::internal_compression`] was set to [`Compression::Unknown`]
-    /// or there was any kind of I/O error while writing to `output`.
+    /// or an I/O error occurred while writing to `output`.
     ///
     /// # Example
     /// Write the archive to a file.

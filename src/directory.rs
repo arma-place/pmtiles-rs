@@ -80,7 +80,7 @@ impl Directory {
     ///
     /// # Errors
     /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`], the data is not compressed correctly
-    /// according to `compression` or there was any kind of I/O error while reading from `input`.
+    /// according to `compression` or an I/O error occurred while reading from `input`.
     ///
     /// # Example
     /// ```rust
@@ -150,8 +150,8 @@ impl Directory {
     /// * `compression` - Compression to use
     ///
     /// # Errors
-    /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or there was
-    /// any kind of I/O error while writing to `output`.
+    /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or an I/O
+    /// error occurred while writing to `output`.
     ///
     /// # Example
     /// ```rust

@@ -8,7 +8,7 @@ use crate::{Compression, Directory};
 /// A structure representing a range of bytes within a larger amount of bytes.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct OffsetLength {
-    /// Offset of first bytes (in bytes)
+    /// Offset of first byte (in bytes)
     pub offset: u64,
 
     /// Number of bytes in the range

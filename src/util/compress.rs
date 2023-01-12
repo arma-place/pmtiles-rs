@@ -13,8 +13,8 @@ use std::io::{Cursor, Error, ErrorKind, Read, Result, Write};
 /// * `writer` - Underlying writer to write compressed data to
 ///
 /// # Errors
-/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or there was
-/// an error while creating the zstd encoder.
+/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or an error occurred
+/// while creating the zstd encoder.
 ///
 /// # Example
 /// ```rust
@@ -55,7 +55,7 @@ pub fn compress<'a>(
 ///
 /// # Errors
 /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`], there was an error
-/// while creating the zstd encoder or there was an error writing `data`.
+/// while creating the zstd encoder or an error occurred while writing to `data`.
 #[allow(clippy::module_name_repetitions)]
 pub fn compress_all(compression: Compression, data: &[u8]) -> Result<Vec<u8>> {
     let mut destination = Vec::<u8>::new();

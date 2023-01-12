@@ -1,0 +1,26 @@
+[package]
+name = "pmtiles2"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/arma-place/pmtiles-rs/"
+documentation = "https://docs.rs/pmtiles2"
+readme="README.md"
+description = "A low level implementation of the PMTiles format based on the standard Read and Write trait."
+categories = ["encoding", "parser-implementations", "parsing"]
+keywords = ["pmtiles", "format", "pmtile", "encoding", "decoding"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+hilbert_2d = "1"
+deku = "0.15"
+integer-encoding = "3.0"
+flate2 = "1.0"
+serde_json = "1.0"
+brotli = "3.3"
+zstd = "0.12"
+ahash = "0.8.2"
+
+[dev-dependencies]
+tempdir = "0.3"

@@ -15,5 +15,5 @@ Add following lines to your Cargo.toml:
 ```toml
 # Cargo.toml
 [dependencies]
-pmtiles2 = "0.1.1"
+pmtiles2 = "0.1.2"
 ```

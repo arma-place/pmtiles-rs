@@ -1,6 +1,6 @@
 use std::io::{Cursor, Result, Seek, SeekFrom, Write};
 
-use crate::{pmtiles::HEADER_BYTES, Compression, Directory, Entry};
+use crate::{header::HEADER_BYTES, Compression, Directory, Entry};
 
 const MAX_ROOT_DIR_LENGTH: u16 = 16384 - HEADER_BYTES as u16;
 

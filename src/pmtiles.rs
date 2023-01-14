@@ -1,13 +1,9 @@
 use std::io::{Cursor, Read, Result, Seek, SeekFrom, Write};
 
-use deku::{
-    bitvec::{BitVec, BitView},
-    DekuRead, DekuWrite,
-};
 use serde_json::{json, Value as JSONValue};
 
 use crate::{
-    header::LatLng,
+    header::{LatLng, HEADER_BYTES},
     tile_manager::TileManager,
     util::{compress, decompress, read_directories, tile_id, write_directories},
     Compression, Header, TileType,
@@ -66,8 +62,6 @@ where
 
     tile_manager: TileManager<R>,
 }
-
-pub const HEADER_BYTES: u8 = 127;
 
 impl PMTiles<Cursor<&[u8]>> {
     /// Constructs a new, empty `PMTiles` archive, with no meta data, an [`internal_compression`](Self::internal_compression) of GZIP and all numeric fields set to `0`.
@@ -169,15 +163,6 @@ impl<R: Read + Seek> PMTiles<R> {
 }
 
 impl<R: Read + Seek> PMTiles<R> {
-    #[allow(clippy::cast_possible_truncation)]
-    fn get_section(reader: &mut R, byte_offset: u64, byte_length: u64) -> Result<Vec<u8>> {
-        reader.seek(SeekFrom::Start(byte_offset))?;
-        let mut buf = vec![0; byte_length as usize];
-        reader.read_exact(&mut buf)?;
-
-        Ok(buf)
-    }
-
     fn parse_meta_data(compression: Compression, reader: &mut impl Read) -> Result<JSONValue> {
         let reader = decompress(compression, reader)?;
 
@@ -209,8 +194,7 @@ impl<R: Read + Seek> PMTiles<R> {
     ///
     pub fn from_reader(mut input: R) -> Result<Self> {
         // HEADER
-        let header_section = Self::get_section(&mut input, 0, u64::from(HEADER_BYTES))?;
-        let (_, header) = Header::read(header_section.view_bits(), ())?;
+        let header = Header::from_reader(&mut input)?;
 
         // META DATA
         let meta_data = if header.json_metadata_length == 0 {
@@ -362,9 +346,7 @@ impl<R: Read + Seek> PMTiles<R> {
             root_directory_offset - u64::from(HEADER_BYTES),
         ))?; // jump to start of stream
 
-        let mut bit_vec = BitVec::with_capacity(8 * HEADER_BYTES as usize);
-        header.write(&mut bit_vec, ())?;
-        output.write_all(bit_vec.as_raw_slice())?;
+        header.to_writer(output)?;
 
         output.seek(SeekFrom::Start(
             (root_directory_offset - u64::from(HEADER_BYTES)) + tile_data_offset + tile_data_length,
@@ -386,28 +368,6 @@ mod test {
         include_bytes!("../test/stamen_toner(raster)CC-BY+ODbL_z3.pmtiles");
 
     const PM_TILES_BYTES2: &[u8] = include_bytes!("../test/protomaps(vector)ODbL_firenze.pmtiles");
-
-    #[test]
-    fn test_get_section() -> Result<()> {
-        let mut reader = Cursor::new(PM_TILES_BYTES);
-
-        let byte_offset = 127usize;
-        let byte_length = 300usize;
-
-        let section = PMTiles::get_section(&mut reader, byte_offset as u64, byte_length as u64)?;
-
-        assert_eq!(
-            section,
-            &PM_TILES_BYTES[byte_offset..byte_offset + byte_length]
-        );
-
-        let res =
-            PMTiles::get_section(&mut reader, PM_TILES_BYTES.len() as u64, byte_length as u64);
-
-        assert!(res.is_err());
-
-        Ok(())
-    }
 
     #[test]
     fn test_parse_meta_data() -> Result<()> {

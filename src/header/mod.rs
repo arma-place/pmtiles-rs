@@ -10,7 +10,7 @@ use deku::bitvec::{BitVec, BitView};
 use deku::prelude::*;
 use std::io::{Read, Write};
 
-pub(crate) const HEADER_BYTES: u8 = 127;
+pub const HEADER_BYTES: u8 = 127;
 
 /// A structure representing a `PMTiles` header.
 #[derive(DekuRead, DekuWrite, Debug)]
@@ -120,7 +120,7 @@ impl Header {
         let mut buf = [0; HEADER_BYTES as usize];
         input.read_exact(&mut buf)?;
 
-        let (_, header) = Header::read(buf.to_vec().view_bits(), ())?;
+        let (_, header) = Self::read(buf.to_vec().view_bits(), ())?;
 
         Ok(header)
     }

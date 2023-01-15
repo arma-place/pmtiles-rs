@@ -5,7 +5,7 @@ use deku::{
 
 #[derive(DekuRead, DekuWrite, Debug, PartialEq)]
 #[deku(endian = "endian", ctx = "_endian: deku::ctx::Endian")]
-
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LatLng {
     #[deku(
         reader = "Self::read_lat_lon(deku::rest)",

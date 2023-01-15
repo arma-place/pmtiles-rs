@@ -4,6 +4,8 @@ use deku::prelude::*;
 #[derive(DekuRead, DekuWrite, Debug, Clone, Copy, PartialEq, Eq)]
 #[deku(type = "u8")]
 #[deku(endian = "endian", ctx = "endian: deku::ctx::Endian")]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum TileType {
     #[allow(missing_docs)]
     Unknown = 0x00,

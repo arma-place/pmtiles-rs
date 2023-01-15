@@ -16,6 +16,7 @@ pub const HEADER_BYTES: u8 = 127;
 #[derive(DekuRead, DekuWrite, Debug)]
 #[deku(magic = b"PMTiles")]
 #[deku(endian = "little")]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Header {
     /// Version of Specification (always 3)
     #[deku(assert_eq = "3")]

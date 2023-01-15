@@ -17,3 +17,8 @@ Add following lines to your Cargo.toml:
 [dependencies]
 pmtiles2 = "0.1"
 ```
+
+## Features
+
+### `serde`
+With this feature enabled most public types are (de-)serializable by [serde](https://crates.io/crates/serde).

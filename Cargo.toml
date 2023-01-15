@@ -12,12 +12,16 @@ keywords = ["pmtiles", "format", "pmtile", "encoding", "decoding"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+serde = ["dep:serde"]
+
 [dependencies]
 hilbert_2d = "1"
 deku = "0.15"
 integer-encoding = "3.0"
 flate2 = "1.0"
 serde_json = "1.0"
+serde = { version = "1.0", optional=true, features = ["derive"] }
 brotli = "3.3"
 zstd = { version = "0.12", default-features = false }
 ahash = { version = "0.8.2", default-features = false, features=["std", "no-rng"] }

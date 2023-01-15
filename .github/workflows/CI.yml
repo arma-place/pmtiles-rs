@@ -32,6 +32,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
+          args: --all-features
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
@@ -43,10 +44,10 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --all-targets -- -D warnings
+          args: --all-features --all-targets -- -D warnings
 
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-targets
+          args: --all-features --all-targets

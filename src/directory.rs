@@ -10,6 +10,7 @@ use crate::Compression;
 ///
 /// A entry includes information on where to find either a leaf directory or one/multiple tiles.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Entry {
     /// The first tile id this entry is valid for
     pub tile_id: u64,
@@ -49,6 +50,8 @@ impl Entry {
 ///
 /// Use [`from_reader`](Self::from_reader) and [`to_writer`](Self::to_writer) to read and write the directory from / to bytes.
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct Directory {
     entries: Vec<Entry>,
 }

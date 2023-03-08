@@ -26,7 +26,7 @@
 //!
 //! fn main () -> std::io::Result<()> {
 //!     // create temp directory
-//!     let dir = tempdir::TempDir::new("pmtiles")?;
+//!     let dir = temp_dir::TempDir::new()?;
 //!     let file_path = dir.path().join("foo.pmtiles");
 //!     
 //!     let pm_tiles = PMTiles::new(TileType::Png, Compression::None);

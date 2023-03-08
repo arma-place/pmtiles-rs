@@ -27,4 +27,4 @@ zstd = { version = "0.12", default-features = false }
 ahash = { version = "0.8.2", default-features = false, features=["std", "no-rng"] }
 
 [dev-dependencies]
-tempdir = "0.3"
+temp-dir = "0.1"

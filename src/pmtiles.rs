@@ -266,7 +266,7 @@ impl<R: Read + Seek> PMTiles<R> {
     /// Write the archive to a file.
     /// ```rust
     /// # use pmtiles2::{PMTiles};
-    /// # let dir = tempdir::TempDir::new("pmtiles").unwrap();
+    /// # let dir = temp_dir::TempDir::new().unwrap();
     /// # let file_path = dir.path().join("foo.pmtiles");
     /// let pm_tiles = PMTiles::default();
     /// let mut file = std::fs::File::create(file_path).unwrap();

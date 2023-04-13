@@ -25,6 +25,7 @@ serde = { version = "1.0", optional=true, features = ["derive"] }
 brotli = "3.3"
 zstd = { version = "0.12", default-features = false }
 ahash = { version = "0.8.2", default-features = false, features=["std", "no-rng"] }
+futures = "0.3.25"
 
 [dev-dependencies]
 temp-dir = "0.1"

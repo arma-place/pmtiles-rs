@@ -58,6 +58,7 @@
 #![warn(clippy::unwrap_used)]
 #![warn(clippy::expect_used)]
 #![allow(clippy::must_use_candidate)]
+#![allow(clippy::multiple_crate_versions)]
 
 mod directory;
 mod header;

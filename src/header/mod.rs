@@ -1,4 +1,5 @@
 pub use compression::*;
+use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 pub use lat_lng::*;
 pub use tile_type::*;
 
@@ -126,6 +127,28 @@ impl Header {
         Ok(header)
     }
 
+    /// Async version of [`from_reader`](Self::from_reader).
+    ///
+    /// Reads a header from a [`futures::io::AsyncRead`] and returns it.
+    ///
+    /// # Arguments
+    /// * `input` - Reader
+    ///
+    /// # Errors
+    /// Will return [`Err`] an I/O error occurred while reading from `input`.
+    ///
+    pub async fn from_async_reader(
+        input: &mut (impl AsyncRead + Unpin + Send),
+    ) -> std::io::Result<Self> {
+        let mut buf = [0; HEADER_BYTES as usize];
+
+        input.read_exact(&mut buf).await?;
+
+        let (_, header) = Self::read(buf.to_vec().view_bits(), ())?;
+
+        Ok(header)
+    }
+
     /// Writes the header to a [`std::io::Write`].
     ///
     /// # Arguments
@@ -138,6 +161,27 @@ impl Header {
         let mut bit_vec = BitVec::with_capacity(8 * HEADER_BYTES as usize);
         self.write(&mut bit_vec, ())?;
         output.write_all(bit_vec.as_raw_slice())?;
+
+        Ok(())
+    }
+
+    /// Async version of [`to_writer`](Self::to_writer).
+    ///
+    /// Writes the header to a [`futures::io::AsyncWrite`].
+    ///
+    /// # Arguments
+    /// * `output` - Writer to write header to
+    ///
+    /// # Errors
+    /// Will return [`Err`] if an I/O error occurred while writing to `output`.
+    ///
+    pub async fn to_async_writer(
+        &self,
+        output: &mut (impl AsyncWrite + Unpin + Send),
+    ) -> std::io::Result<()> {
+        let mut bit_vec = BitVec::with_capacity(8 * HEADER_BYTES as usize);
+        self.write(&mut bit_vec, ())?;
+        output.write_all(bit_vec.as_raw_slice()).await?;
 
         Ok(())
     }

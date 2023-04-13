@@ -1,7 +1,18 @@
 use crate::Compression;
 
+use async_compression::futures::{
+    bufread::{
+        BrotliDecoder as AsyncBrotliDecoder, GzipDecoder as AsyncGzipDecoder,
+        ZstdDecoder as AsyncZstdDecoder,
+    },
+    write::{
+        BrotliEncoder as AsyncBrotliEncoder, GzipEncoder as AsyncGzipEncoder,
+        ZstdEncoder as AsyncZstdEncoder,
+    },
+};
 use brotli::{CompressorWriter as BrotliEncoder, Decompressor as BrotliDecoder};
 use flate2::{read::GzDecoder, write::GzEncoder};
+use futures::{io::BufReader, AsyncRead, AsyncWrite};
 use zstd::{Decoder as ZSTDDecoder, Encoder as ZSTDEncoder};
 
 use std::io::{Cursor, Error, ErrorKind, Read, Result, Write};
@@ -44,6 +55,35 @@ pub fn compress<'a>(
         ))),
         Compression::Brotli => Ok(Box::new(BrotliEncoder::new(writer, 4096, 11, 24))),
         Compression::ZStd => Ok(Box::new(ZSTDEncoder::new(writer, 0)?.auto_finish())),
+    }
+}
+
+/// Async version of [`compress`].
+///
+/// Returns a new instance of [`futures::io::AsyncWrite`] that will emit compressed data to the underlying writer.
+///
+/// # Arguments
+/// * `compression` - Compression to use
+/// * `writer` - Underlying writer to write compressed data to
+///
+/// # Errors
+/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or an error occurred
+/// while creating the zstd encoder.
+///
+#[allow(clippy::module_name_repetitions)]
+pub fn compress_async<'a>(
+    compression: Compression,
+    writer: &'a mut (impl AsyncWrite + Unpin + Send),
+) -> Result<Box<dyn AsyncWrite + Unpin + Send + 'a>> {
+    match compression {
+        Compression::Unknown => Err(Error::new(
+            ErrorKind::Other,
+            "Cannot compress for Compression Unknown",
+        )),
+        Compression::None => Ok(Box::new(writer)),
+        Compression::GZip => Ok(Box::new(AsyncGzipEncoder::new(writer))),
+        Compression::Brotli => Ok(Box::new(AsyncBrotliEncoder::new(writer))),
+        Compression::ZStd => Ok(Box::new(AsyncZstdEncoder::new(writer))),
     }
 }
 
@@ -106,6 +146,40 @@ pub fn decompress<'a>(
         Compression::GZip => Ok(Box::new(GzDecoder::new(compressed_data))),
         Compression::Brotli => Ok(Box::new(BrotliDecoder::new(compressed_data, 4096))),
         Compression::ZStd => Ok(Box::new(ZSTDDecoder::new(compressed_data)?)),
+    }
+}
+
+/// Async version of [`decompress`].
+///
+/// Returns a new instance of [`futures::io::AsyncRead`] that will emit uncompressed data from an the underlying reader.
+///
+/// # Arguments
+/// * `compression` - Compression to use
+/// * `compressed_data` - Underlying reader with compressed data
+///
+/// # Errors
+/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`],there was an
+/// error while creating the zstd decoder.
+///
+pub fn decompress_async<'a>(
+    compression: Compression,
+    compressed_data: &'a mut (impl AsyncRead + Unpin + Send),
+) -> Result<Box<dyn AsyncRead + Unpin + Send + 'a>> {
+    match compression {
+        Compression::Unknown => Err(Error::new(
+            ErrorKind::Other,
+            "Cannot decompress for Compression Unknown",
+        )),
+        Compression::None => Ok(Box::new(compressed_data)),
+        Compression::GZip => Ok(Box::new(AsyncGzipDecoder::new(BufReader::new(
+            compressed_data,
+        )))),
+        Compression::Brotli => Ok(Box::new(AsyncBrotliDecoder::new(BufReader::new(
+            compressed_data,
+        )))),
+        Compression::ZStd => Ok(Box::new(AsyncZstdDecoder::new(BufReader::new(
+            compressed_data,
+        )))),
     }
 }
 

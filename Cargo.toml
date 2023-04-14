@@ -28,6 +28,7 @@ ahash = { version = "0.8.2", default-features = false, features=["std", "no-rng"
 futures = "0.3.25"
 async-compression = { version = "0.3.15", features = ["futures-io", "zstd", "gzip", "brotli"] }
 duplicate = "1.0.0"
+async-recursion = "1.0.4"
 
 [dev-dependencies]
 temp-dir = "0.1"

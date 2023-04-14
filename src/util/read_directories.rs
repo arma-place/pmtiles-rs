@@ -1,7 +1,10 @@
+use async_recursion::async_recursion;
+use futures::io::{AsyncRead, AsyncReadExt, AsyncSeekExt};
 use std::collections::HashMap;
-use std::io::{Read, Result, Seek, SeekFrom};
+use std::io::{Read, Result, Seek};
 
 use ahash::RandomState;
+use duplicate::duplicate_item;
 
 use crate::{Compression, Directory};
 
@@ -66,25 +69,84 @@ pub fn read_directories(
     Ok(tiles)
 }
 
-fn read_dir_rec(
-    reader: &mut (impl Read + Seek),
+/// Async version of [`read_directories`](read_directories).
+///
+/// Reads directories (root- & leaf-directories) from a reader and return all entries
+/// as a [`std::collections::HashMap`], with the tile-id as the key and the offset & length as the value.
+///
+/// # Arguments
+/// * `reader` - Reader with root- and leaf-directories
+/// * `compression` - Compression of directories
+/// * `root_dir_offset_length` - Offset and length (in bytes) of root directory section
+/// * `leaf_dir_offset` - Offset (in bytes) of leaf directories section
+///
+/// # Errors
+/// Will return [`Err`] if there was an error reading the bytes from the reader or while decompressing
+/// a directory.
+///
+/// # Example
+/// ```rust
+/// # use pmtiles2::{Header, Directory, Compression, util::read_directories_async};
+/// # use futures::io::{AsyncReadExt, AsyncSeekExt, SeekFrom};
+/// # tokio_test::block_on(async {
+/// let bytes = include_bytes!("../../test/stamen_toner(raster)CC-BY+ODbL_z3.pmtiles");
+/// let mut reader = futures::io::Cursor::new(bytes);
+///
+/// let header = Header::from_async_reader(&mut reader).await.unwrap();
+///
+/// let entries_map = read_directories_async(
+///     &mut reader,
+///     header.internal_compression,
+///     (header.root_directory_offset, header.root_directory_length),
+///     header.leaf_directories_offset,
+/// ).await.unwrap();
+/// # })
+/// ```
+#[allow(clippy::module_name_repetitions)]
+pub async fn read_directories_async(
+    reader: &mut (impl AsyncRead + Unpin + Send + AsyncReadExt + AsyncSeekExt),
+    compression: Compression,
+    root_dir_offset_length: (u64, u64),
+    leaf_dir_offset: u64,
+) -> Result<HashMap<u64, OffsetLength, RandomState>> {
+    let mut tiles = HashMap::<u64, OffsetLength, RandomState>::default();
+
+    read_dir_rec_async(
+        reader,
+        &mut tiles,
+        compression,
+        root_dir_offset_length,
+        leaf_dir_offset,
+    )
+    .await?;
+
+    Ok(tiles)
+}
+
+#[duplicate_item(
+    fn_name              async                      add_await(code) seek_start(reader, offset)                                input_traits                                                    read_directory(reader, len, compression);
+    [read_dir_rec]       []                         [code]          [reader.seek(std::io::SeekFrom::Start(offset))]           [(impl Read + Seek)]                                            [Directory::from_reader(reader, len, compression)];
+    [read_dir_rec_async] [#[async_recursion] async] [code.await]    [reader.seek(futures::io::SeekFrom::Start(offset)).await] [(impl AsyncRead + Unpin + Send + AsyncReadExt + AsyncSeekExt)] [Directory::from_async_reader(reader, len, compression).await];
+)]
+async fn fn_name(
+    reader: &mut input_traits,
     tiles: &mut HashMap<u64, OffsetLength, RandomState>,
     compression: Compression,
     (dir_offset, dir_length): (u64, u64),
     leaf_dir_offset: u64,
 ) -> Result<()> {
-    reader.seek(SeekFrom::Start(dir_offset))?;
-    let directory = Directory::from_reader(reader, dir_length, compression)?;
+    seek_start([reader], [dir_offset])?;
+    let directory = read_directory([reader], [dir_length], [compression])?;
 
     for entry in directory.iter() {
         if entry.is_leaf_dir_entry() {
-            read_dir_rec(
+            add_await([fn_name(
                 reader,
                 tiles,
                 compression,
                 (leaf_dir_offset + entry.offset, u64::from(entry.length)),
                 leaf_dir_offset,
-            )?;
+            )])?;
             continue;
         }
 

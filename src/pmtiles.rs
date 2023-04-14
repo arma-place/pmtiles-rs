@@ -1,5 +1,6 @@
 use std::io::{Cursor, Read, Result, Seek, SeekFrom, Write};
 
+use futures::{AsyncRead, AsyncReadExt, AsyncSeekExt};
 use serde_json::{json, Value as JSONValue};
 
 use crate::{
@@ -11,10 +12,7 @@ use crate::{
 
 #[derive(Debug)]
 /// A structure representing a `PMTiles` archive.
-pub struct PMTiles<R>
-where
-    R: Read + Seek,
-{
+pub struct PMTiles<R> {
     /// Type of tiles
     pub tile_type: TileType,
 
@@ -110,36 +108,10 @@ impl Default for PMTiles<Cursor<Vec<u8>>> {
     }
 }
 
-impl<R: Read + Seek> PMTiles<R> {
-    /// Get data of a tile by its id.
-    ///
-    /// The returned data is the raw data, meaning It is NOT uncompressed automatically,
-    /// if it was compressed in the first place.  
-    /// If you need the uncompressed data, take a look at the [`util`-module](crate::util)
-    ///
-    /// Will return [`Ok`] with an value of [`None`] if no a tile with the specified tile id was found.
-    ///
-    /// # Errors
-    /// Will return [`Err`] if the tile data was not read into memory yet and there was an error while
-    /// attempting to read it.
-    ///
-    pub fn get_tile_by_id(&mut self, tile_id: u64) -> Result<Option<Vec<u8>>> {
-        self.tile_manager.get_tile(tile_id)
-    }
-
+impl<R> PMTiles<R> {
     /// Get vector of all tile ids in this `PMTiles` archive.
     pub fn tile_ids(&self) -> Vec<&u64> {
         self.tile_manager.get_tile_ids()
-    }
-
-    /// Returns the data of the tile with the specified coordinates.
-    ///
-    /// See [`get_tile_by_id`](Self::get_tile_by_id) for further details on the return type.
-    ///
-    /// # Errors
-    /// See [`get_tile_by_id`](Self::get_tile_by_id) for details on possible errors.
-    pub fn get_tile(&mut self, x: u64, y: u64, z: u8) -> Result<Option<Vec<u8>>> {
-        self.get_tile_by_id(tile_id(z, x, y))
     }
 
     /// Adds a tile to this `PMTiles` archive.
@@ -159,6 +131,66 @@ impl<R: Read + Seek> PMTiles<R> {
     /// Returns the number of addressed tiles in this archive.
     pub fn num_tiles(&self) -> usize {
         self.tile_manager.num_addressed_tiles()
+    }
+}
+
+impl<R: Read + Seek> PMTiles<R> {
+    /// Get data of a tile by its id.
+    ///
+    /// The returned data is the raw data, meaning It is NOT uncompressed automatically,
+    /// if it was compressed in the first place.  
+    /// If you need the uncompressed data, take a look at the [`util`-module](crate::util)
+    ///
+    /// Will return [`Ok`] with an value of [`None`] if no a tile with the specified tile id was found.
+    ///
+    /// # Errors
+    /// Will return [`Err`] if the tile data was not read into memory yet and there was an error while
+    /// attempting to read it.
+    ///
+    pub fn get_tile_by_id(&mut self, tile_id: u64) -> Result<Option<Vec<u8>>> {
+        self.tile_manager.get_tile(tile_id)
+    }
+
+    /// Returns the data of the tile with the specified coordinates.
+    ///
+    /// See [`get_tile_by_id`](Self::get_tile_by_id) for further details on the return type.
+    ///
+    /// # Errors
+    /// See [`get_tile_by_id`](Self::get_tile_by_id) for details on possible errors.
+    pub fn get_tile(&mut self, x: u64, y: u64, z: u8) -> Result<Option<Vec<u8>>> {
+        self.get_tile_by_id(tile_id(z, x, y))
+    }
+}
+
+impl<R: AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt> PMTiles<R> {
+    /// Async version of [`get_tile_by_id`](Self::get_tile_by_id).
+    ///
+    /// Get data of a tile by its id.
+    ///
+    /// The returned data is the raw data, meaning It is NOT uncompressed automatically,
+    /// if it was compressed in the first place.  
+    /// If you need the uncompressed data, take a look at the [`util`-module](crate::util)
+    ///
+    /// Will return [`Ok`] with an value of [`None`] if no a tile with the specified tile id was found.
+    ///
+    /// # Errors
+    /// Will return [`Err`] if the tile data was not read into memory yet and there was an error while
+    /// attempting to read it.
+    ///
+    pub async fn get_tile_by_id_async(&mut self, tile_id: u64) -> Result<Option<Vec<u8>>> {
+        self.tile_manager.get_tile_async(tile_id).await
+    }
+
+    /// Async version of [`get_tile`](Self::get_tile).
+    ///
+    /// Returns the data of the tile with the specified coordinates.
+    ///
+    /// See [`get_tile_by_id_async`](Self::get_tile_by_id_async) for further details on the return type.
+    ///
+    /// # Errors
+    /// See [`get_tile_by_id_async`](Self::get_tile_by_id_async) for details on possible errors.
+    pub async fn get_tile_async(&mut self, x: u64, y: u64, z: u8) -> Result<Option<Vec<u8>>> {
+        self.get_tile_by_id_async(tile_id(z, x, y)).await
     }
 }
 

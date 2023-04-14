@@ -1,3 +1,5 @@
+use duplicate::duplicate_item;
+use futures::{AsyncRead, AsyncReadExt, AsyncSeekExt};
 use std::{
     collections::{HashMap, HashSet},
     hash::{Hash, Hasher},
@@ -23,10 +25,7 @@ pub struct FinishResult {
 }
 
 #[derive(Debug)]
-pub struct TileManager<R>
-where
-    R: Read + Seek,
-{
+pub struct TileManager<R> {
     /// hash of tile -> bytes of tile
     data_by_hash: HashMap<u64, Vec<u8>>,
 
@@ -39,7 +38,7 @@ where
     reader: Option<R>,
 }
 
-impl<R: Read + Seek> TileManager<R> {
+impl<R> TileManager<R> {
     pub fn new(reader: Option<R>) -> Self {
         Self {
             data_by_hash: HashMap::default(),
@@ -105,35 +104,6 @@ impl<R: Read + Seek> TileManager<R> {
         }
     }
 
-    fn get_tile_content(
-        reader: &mut Option<R>,
-        data_by_hash: &HashMap<u64, Vec<u8>>,
-        tile: &TileManagerTile,
-    ) -> Result<Option<Vec<u8>>> {
-        match tile {
-            TileManagerTile::Hash(hash) => Ok(data_by_hash.get(hash).cloned()),
-            TileManagerTile::OffsetLength(offset, length) => match reader {
-                Some(r) => {
-                    r.seek(SeekFrom::Start(*offset))?;
-                    let mut buf = vec![0; *length as usize];
-                    r.read_exact(&mut buf)?;
-                    Ok(Some(buf))
-                }
-                None => Err(Error::new(
-                    ErrorKind::UnexpectedEof,
-                    "Tried to read from non-existent reader",
-                )),
-            },
-        }
-    }
-
-    pub fn get_tile(&mut self, tile_id: u64) -> Result<Option<Vec<u8>>> {
-        match self.tile_by_id.get(&tile_id) {
-            None => Ok(None),
-            Some(tile) => Self::get_tile_content(&mut self.reader, &self.data_by_hash, tile),
-        }
-    }
-
     pub fn get_tile_ids(&self) -> Vec<&u64> {
         self.tile_by_id.keys().collect()
     }
@@ -160,8 +130,48 @@ impl<R: Read + Seek> TileManager<R> {
             run_length: 1,
         });
     }
+}
 
-    pub fn finish(mut self) -> Result<FinishResult> {
+#[duplicate_item(
+    async    add_await(code) RTraits                                                  get_tile_content         get_tile         finish;
+    []       [code]          [Read + Seek]                                            [get_tile_content]       [get_tile]       [finish];
+    [async]  [code.await]    [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [get_tile_content_async] [get_tile_async] [finish_async];
+)]
+impl<R: RTraits> TileManager<R> {
+    async fn get_tile_content(
+        reader: &mut Option<R>,
+        data_by_hash: &HashMap<u64, Vec<u8>>,
+        tile: &TileManagerTile,
+    ) -> Result<Option<Vec<u8>>> {
+        match tile {
+            TileManagerTile::Hash(hash) => Ok(data_by_hash.get(hash).cloned()),
+            TileManagerTile::OffsetLength(offset, length) => match reader {
+                Some(r) => {
+                    add_await([r.seek(SeekFrom::Start(*offset))])?;
+                    let mut buf = vec![0; *length as usize];
+                    add_await([r.read_exact(&mut buf)])?;
+                    Ok(Some(buf))
+                }
+                None => Err(Error::new(
+                    ErrorKind::UnexpectedEof,
+                    "Tried to read from non-existent reader",
+                )),
+            },
+        }
+    }
+
+    pub async fn get_tile(&mut self, tile_id: u64) -> Result<Option<Vec<u8>>> {
+        match self.tile_by_id.get(&tile_id) {
+            None => Ok(None),
+            Some(tile) => add_await([Self::get_tile_content(
+                &mut self.reader,
+                &self.data_by_hash,
+                tile,
+            )]),
+        }
+    }
+
+    pub async fn finish(mut self) -> Result<FinishResult> {
         type OffsetLen = (u64, u32);
 
         let mut id_tile = self
@@ -180,7 +190,7 @@ impl<R: Read + Seek> TileManager<R> {
         let mut offset_length_map = HashMap::<u64, OffsetLen, RandomState>::default();
 
         for (tile_id, tile) in id_tile {
-            let Some(mut tile_data) = Self::get_tile_content(&mut self.reader, &self.data_by_hash, &tile)? else { continue; };
+            let Some(mut tile_data) = add_await([Self::get_tile_content(&mut self.reader, &self.data_by_hash, &tile)])? else { continue; };
 
             let hash = if let TileManagerTile::Hash(h) = tile {
                 h

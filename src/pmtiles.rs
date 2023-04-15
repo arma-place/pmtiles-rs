@@ -1,12 +1,16 @@
-use std::io::{Cursor, Read, Result, Seek, SeekFrom, Write};
+use std::io::{Cursor, Read, Result, Seek, Write};
 
-use futures::{AsyncRead, AsyncReadExt, AsyncSeekExt};
+use duplicate::duplicate_item;
+use futures::{AsyncRead, AsyncReadExt, AsyncSeekExt, AsyncWrite, AsyncWriteExt};
 use serde_json::{json, Value as JSONValue};
 
 use crate::{
     header::{LatLng, HEADER_BYTES},
     tile_manager::TileManager,
-    util::{compress, decompress, read_directories, tile_id, write_directories},
+    util::{
+        compress, compress_async, decompress, decompress_async, read_directories,
+        read_directories_async, tile_id, write_directories, write_directories_async,
+    },
     Compression, Header, TileType,
 };
 
@@ -223,52 +227,54 @@ impl<R: Read + Seek> PMTiles<R> {
 
         Ok(val)
     }
+}
 
-    /// Reads a `PMTiles` archive from a reader.
-    ///
-    /// This takes ownership of the reader, because tile data is only read when required.
-    ///
-    /// # Arguments
-    /// * `input` - Reader
-    ///
-    /// # Errors
-    /// Will return [`Err`] if there was any kind of I/O error while reading from `input`, the data
-    /// stream was no valid `PMTiles` archive or the internal compression of the archive is set to "Unknown".
-    ///
-    ///
-    /// # Example
-    /// ```rust
-    /// # use pmtiles2::{PMTiles};
-    /// # let file_path = "./test/stamen_toner(raster)CC-BY+ODbL_z3.pmtiles";
-    /// let mut file = std::fs::File::open(file_path).unwrap();
-    ///
-    /// let pm_tiles = PMTiles::from_reader(file).unwrap();
-    /// ```
-    ///
-    pub fn from_reader(mut input: R) -> Result<Self> {
+impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
+    async fn parse_meta_data_async(
+        compression: Compression,
+        reader: &mut (impl AsyncRead + Unpin + Send),
+    ) -> Result<JSONValue> {
+        let mut reader = decompress_async(compression, reader)?;
+
+        let mut output = Vec::with_capacity(2048);
+        reader.read_to_end(&mut output).await?;
+
+        let val: JSONValue = serde_json::from_slice(&output[..])?;
+
+        Ok(val)
+    }
+}
+
+#[duplicate_item(
+    fn_name                  async    add_await(code) SeekFrom                RTraits                                                  read_directories         parse_meta_data         from_reader;
+    [from_reader_impl]       []       [code]          [std::io::SeekFrom]     [Read + Seek]                                            [read_directories]       [parse_meta_data]       [from_reader];
+    [from_async_reader_impl] [async]  [code.await]    [futures::io::SeekFrom] [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [read_directories_async] [parse_meta_data_async] [from_async_reader];
+)]
+impl<R: RTraits> PMTiles<R> {
+    async fn fn_name(mut input: R) -> Result<Self> {
         // HEADER
-        let header = Header::from_reader(&mut input)?;
+        let header = add_await([Header::from_reader(&mut input)])?;
 
         // META DATA
         let meta_data = if header.json_metadata_length == 0 {
             None
         } else {
-            input.seek(SeekFrom::Start(header.json_metadata_offset))?;
+            add_await([input.seek(SeekFrom::Start(header.json_metadata_offset))])?;
 
             let mut meta_data_reader = (&mut input).take(header.json_metadata_length);
-            Some(Self::parse_meta_data(
+            Some(add_await([Self::parse_meta_data(
                 header.internal_compression,
                 &mut meta_data_reader,
-            )?)
+            )])?)
         };
 
         // DIRECTORIES
-        let tiles = read_directories(
+        let tiles = add_await([read_directories(
             &mut input,
             header.internal_compression,
             (header.root_directory_offset, header.root_directory_length),
             header.leaf_directories_offset,
-        )?;
+        )])?;
 
         let mut tile_manager = TileManager::new(Some(input));
 
@@ -299,65 +305,47 @@ impl<R: Read + Seek> PMTiles<R> {
     }
 }
 
-impl<R: Read + Seek> PMTiles<R> {
-    /// Writes the archive to a writer.
-    ///
-    /// The archive is always deduped and the directory entries clustered to produce the smallest
-    /// possible archive size.
-    ///
-    /// This takes ownership of the object so all data does not need to be copied.
-    /// This prevents large memory consumption when writing large `PMTiles` archives.  
-    ///
-    /// # Arguments
-    /// * `output` - Writer to write data to
-    ///
-    /// # Errors
-    /// Will return [`Err`] if [`Self::internal_compression`] was set to [`Compression::Unknown`]
-    /// or an I/O error occurred while writing to `output`.
-    ///
-    /// # Example
-    /// Write the archive to a file.
-    /// ```rust
-    /// # use pmtiles2::{PMTiles};
-    /// # let dir = temp_dir::TempDir::new().unwrap();
-    /// # let file_path = dir.path().join("foo.pmtiles");
-    /// let pm_tiles = PMTiles::default();
-    /// let mut file = std::fs::File::create(file_path).unwrap();
-    /// pm_tiles.to_writer(&mut file).unwrap();
-    /// ```
-    ///
-    pub fn to_writer(self, output: &mut (impl Write + Seek)) -> Result<()> {
-        let result = self.tile_manager.finish()?;
+#[duplicate_item(
+    fn_name                async    add_await(code) RTraits                                                  SeekFrom                WTraits                                    finish         compress         write_directories         to_writer;
+    [to_writer_impl]       []       [code]          [Read + Seek]                                            [std::io::SeekFrom]     [Write + Seek]                             [finish]       [compress]       [write_directories]       [to_writer];
+    [to_async_writer_impl] [async]  [code.await]    [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [futures::io::SeekFrom] [AsyncWrite + Send + Unpin + AsyncSeekExt] [finish_async] [compress_async] [write_directories_async] [to_async_writer];
+)]
+impl<R: RTraits> PMTiles<R> {
+    #[allow(clippy::wrong_self_convention)]
+    async fn fn_name(self, output: &mut (impl WTraits)) -> Result<()> {
+        let result = add_await([self.tile_manager.finish()])?;
 
         // ROOT DIR
-        output.seek(SeekFrom::Current(i64::from(HEADER_BYTES)))?;
+        add_await([output.seek(SeekFrom::Current(i64::from(HEADER_BYTES)))])?;
         let root_directory_offset = u64::from(HEADER_BYTES);
-        let leaf_directories_data = write_directories(
+        let leaf_directories_data = add_await([write_directories(
             output,
             &result.directory[0..],
             self.internal_compression,
             None,
-        )?;
-        let root_directory_length = output.stream_position()? - root_directory_offset;
+        )])?;
+        let root_directory_length = add_await([output.stream_position()])? - root_directory_offset;
 
         // META DATA
         let json_metadata_offset = root_directory_offset + root_directory_length;
         {
             let meta_val = self.meta_data.unwrap_or_else(|| json!({}));
             let mut compression_writer = compress(self.internal_compression, output)?;
-            serde_json::to_writer(&mut compression_writer, &meta_val)?;
+            let vec = serde_json::to_vec(&meta_val)?;
+            add_await([compression_writer.write_all(&vec)])?;
         }
-        let json_metadata_length = output.stream_position()? - json_metadata_offset;
+        let json_metadata_length = add_await([output.stream_position()])? - json_metadata_offset;
 
         // LEAF DIRECTORIES
         let leaf_directories_offset = json_metadata_offset + json_metadata_length;
-        output.write_all(&leaf_directories_data[0..])?;
+        add_await([output.write_all(&leaf_directories_data[0..])])?;
         drop(leaf_directories_data);
-        let leaf_directories_length = output.stream_position()? - leaf_directories_offset;
+        let leaf_directories_length =
+            add_await([output.stream_position()])? - leaf_directories_offset;
 
         // DATA
         let tile_data_offset = leaf_directories_offset + leaf_directories_length;
-        output.write_all(&result.data[0..])?;
+        add_await([output.write_all(&result.data[0..])])?;
         let tile_data_length = result.data.len() as u64;
 
         // HEADER
@@ -395,17 +383,141 @@ impl<R: Read + Seek> PMTiles<R> {
             },
         };
 
-        output.seek(SeekFrom::Start(
+        add_await([output.seek(SeekFrom::Start(
             root_directory_offset - u64::from(HEADER_BYTES),
-        ))?; // jump to start of stream
+        ))])?; // jump to start of stream
 
-        header.to_writer(output)?;
+        add_await([header.to_writer(output)])?;
 
-        output.seek(SeekFrom::Start(
+        add_await([output.seek(SeekFrom::Start(
             (root_directory_offset - u64::from(HEADER_BYTES)) + tile_data_offset + tile_data_length,
-        ))?; // jump to end of stream
+        ))])?; // jump to end of stream
 
         Ok(())
+    }
+}
+
+impl<R: Read + Seek> PMTiles<R> {
+    /// Reads a `PMTiles` archive from a reader.
+    ///
+    /// This takes ownership of the reader, because tile data is only read when required.
+    ///
+    /// # Arguments
+    /// * `input` - Reader
+    ///
+    /// # Errors
+    /// Will return [`Err`] if there was any kind of I/O error while reading from `input`, the data
+    /// stream was no valid `PMTiles` archive or the internal compression of the archive is set to "Unknown".
+    ///
+    ///
+    /// # Example
+    /// ```rust
+    /// # use pmtiles2::{PMTiles};
+    /// # let file_path = "./test/stamen_toner(raster)CC-BY+ODbL_z3.pmtiles";
+    /// let mut file = std::fs::File::open(file_path).unwrap();
+    ///
+    /// let pm_tiles = PMTiles::from_reader(file).unwrap();
+    /// ```
+    pub fn from_reader(input: R) -> Result<Self> {
+        Self::from_reader_impl(input)
+    }
+
+    /// Writes the archive to a writer.
+    ///
+    /// The archive is always deduped and the directory entries clustered to produce the smallest
+    /// possible archive size.
+    ///
+    /// This takes ownership of the object so all data does not need to be copied.
+    /// This prevents large memory consumption when writing large `PMTiles` archives.  
+    ///
+    /// # Arguments
+    /// * `output` - Writer to write data to
+    ///
+    /// # Errors
+    /// Will return [`Err`] if [`Self::internal_compression`] was set to [`Compression::Unknown`]
+    /// or an I/O error occurred while writing to `output`.
+    ///
+    /// # Example
+    /// Write the archive to a file.
+    /// ```rust
+    /// # use pmtiles2::{PMTiles};
+    /// # let dir = temp_dir::TempDir::new().unwrap();
+    /// # let file_path = dir.path().join("foo.pmtiles");
+    /// let pm_tiles = PMTiles::<std::io::Cursor<_>>::default();
+    /// let mut file = std::fs::File::create(file_path).unwrap();
+    /// pm_tiles.to_writer(&mut file).unwrap();
+    /// ```
+    pub fn to_writer(self, output: &mut (impl Write + Seek)) -> Result<()> {
+        self.to_writer_impl(output)
+    }
+}
+
+impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
+    /// Async version of [`from_reader`](Self::from_reader).
+    ///
+    /// Reads a `PMTiles` archive from a reader.
+    ///
+    /// This takes ownership of the reader, because tile data is only read when required.
+    ///
+    /// # Arguments
+    /// * `input` - Reader
+    ///
+    /// # Errors
+    /// Will return [`Err`] if there was any kind of I/O error while reading from `input`, the data
+    /// stream was no valid `PMTiles` archive or the internal compression of the archive is set to "Unknown".
+    ///
+    ///
+    /// # Example
+    /// ```rust
+    /// # use pmtiles2::PMTiles;
+    /// # use futures::io::{AsyncReadExt, AsyncSeekExt, SeekFrom};
+    /// # tokio_test::block_on(async {
+    /// let bytes = include_bytes!("../test/stamen_toner(raster)CC-BY+ODbL_z3.pmtiles");
+    /// let mut reader = futures::io::Cursor::new(bytes);
+    ///
+    /// let pm_tiles = PMTiles::from_async_reader(reader).await.unwrap();
+    /// # })
+    /// ```
+    pub async fn from_async_reader(input: R) -> Result<Self> {
+        Self::from_async_reader_impl(input).await
+    }
+
+    /// Async version of [`to_writer`](Self::to_writer).
+    ///
+    /// Writes the archive to a writer.
+    ///
+    /// The archive is always deduped and the directory entries clustered to produce the smallest
+    /// possible archive size.
+    ///
+    /// This takes ownership of the object so all data does not need to be copied.
+    /// This prevents large memory consumption when writing large `PMTiles` archives.  
+    ///
+    /// # Arguments
+    /// * `output` - Writer to write data to
+    ///
+    /// # Errors
+    /// Will return [`Err`] if [`Self::internal_compression`] was set to [`Compression::Unknown`]
+    /// or an I/O error occurred while writing to `output`.
+    ///
+    /// # Example
+    /// Write the archive to a file.
+    /// ```rust
+    /// # use pmtiles2::PMTiles;
+    /// # use futures::io::{AsyncWrite, AsyncWriteExt, AsyncSeekExt};
+    /// # use tokio_util::compat::TokioAsyncReadCompatExt;
+    /// # let dir = temp_dir::TempDir::new().unwrap();
+    /// # let file_path = dir.path().join("foo.pmtiles");
+    /// # tokio_test::block_on(async {
+    /// let pm_tiles = PMTiles::<futures::io::Cursor<_>>::default();
+    /// let mut out_file = tokio::fs::File::create(file_path).await.unwrap().compat();
+    /// pm_tiles.to_async_writer(&mut out_file).await.unwrap();
+    /// # })
+    /// ```
+    pub async fn to_async_writer(
+        self,
+        output: &mut (impl AsyncWrite + AsyncSeekExt + Unpin + Send),
+    ) -> Result<()> {
+        self.to_async_writer_impl(output).await
     }
 }
 

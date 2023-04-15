@@ -179,9 +179,9 @@ impl Header {
         &self,
         output: &mut (impl AsyncWrite + Unpin + Send),
     ) -> std::io::Result<()> {
-        let mut bit_vec = BitVec::with_capacity(8 * HEADER_BYTES as usize);
-        self.write(&mut bit_vec, ())?;
-        output.write_all(bit_vec.as_raw_slice()).await?;
+        let vec = self.to_bytes()?;
+        output.write_all(&vec).await?;
+        output.flush().await?;
 
         Ok(())
     }

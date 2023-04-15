@@ -108,6 +108,27 @@ impl Default for PMTiles<Cursor<Vec<u8>>> {
     }
 }
 
+impl Default for PMTiles<futures::io::Cursor<Vec<u8>>> {
+    fn default() -> Self {
+        Self {
+            tile_type: TileType::Unknown,
+            internal_compression: Compression::None,
+            tile_compression: Compression::Unknown,
+            min_zoom: 0,
+            max_zoom: 0,
+            center_zoom: 0,
+            min_longitude: 0.0,
+            min_latitude: 0.0,
+            max_longitude: 0.0,
+            max_latitude: 0.0,
+            center_longitude: 0.0,
+            center_latitude: 0.0,
+            meta_data: None,
+            tile_manager: TileManager::<_>::new(None),
+        }
+    }
+}
+
 impl<R> PMTiles<R> {
     /// Get vector of all tile ids in this `PMTiles` archive.
     pub fn tile_ids(&self) -> Vec<&u64> {

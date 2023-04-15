@@ -3,7 +3,7 @@ use futures::{AsyncRead, AsyncReadExt, AsyncSeekExt};
 use std::{
     collections::{HashMap, HashSet},
     hash::{Hash, Hasher},
-    io::{Cursor, Error, ErrorKind, Read, Result, Seek, SeekFrom},
+    io::{Cursor, Error, ErrorKind, Read, Result, Seek},
 };
 
 use ahash::{AHasher, RandomState};
@@ -133,9 +133,9 @@ impl<R> TileManager<R> {
 }
 
 #[duplicate_item(
-    async    add_await(code) RTraits                                                  get_tile_content         get_tile         finish;
-    []       [code]          [Read + Seek]                                            [get_tile_content]       [get_tile]       [finish];
-    [async]  [code.await]    [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [get_tile_content_async] [get_tile_async] [finish_async];
+    async    add_await(code) RTraits                                                  SeekFrom                get_tile_content         get_tile         finish;
+    []       [code]          [Read + Seek]                                            [std::io::SeekFrom]     [get_tile_content]       [get_tile]       [finish];
+    [async]  [code.await]    [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [futures::io::SeekFrom] [get_tile_content_async] [get_tile_async] [finish_async];
 )]
 impl<R: RTraits> TileManager<R> {
     async fn get_tile_content(

@@ -1,5 +1,5 @@
 use duplicate::duplicate_item;
-use futures::{AsyncRead, AsyncReadExt, AsyncWrite};
+use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use integer_encoding::{VarIntAsyncReader, VarIntAsyncWriter, VarIntReader, VarIntWriter};
 use std::io::{Read, Result, Write};
 use std::ops::{Index, IndexMut, Range};
@@ -135,12 +135,12 @@ impl Directory {
     }
 
     #[duplicate_item(
-        fn_name                input_traits                       compress(compression, output)         write_varint(writer, value)              async;
-        [to_writer_impl]       [impl Write]                       [compress(compression, output)]       [writer.write_varint(value)]             [];
-        [to_async_writer_impl] [(impl AsyncWrite + Unpin + Send)] [compress_async(compression, output)] [writer.write_varint_async(value).await] [async];
+        fn_name                input_traits                       compress         write_varint(writer, value)              add_await(code) async;
+        [to_writer_impl]       [impl Write]                       [compress]       [writer.write_varint(value)]             [code]          [];
+        [to_async_writer_impl] [(impl AsyncWrite + Unpin + Send)] [compress_async] [writer.write_varint_async(value).await] [code.await]    [async];
     )]
     async fn fn_name(&self, output: &mut input_traits, compression: Compression) -> Result<()> {
-        let mut writer = compress([compression], [output])?;
+        let mut writer = compress(compression, output)?;
 
         write_varint([writer], [self.entries.len()])?;
 
@@ -174,6 +174,8 @@ impl Directory {
 
             next_byte = entry.offset + u64::from(entry.length);
         }
+
+        add_await([writer.flush()])?;
 
         Ok(())
     }

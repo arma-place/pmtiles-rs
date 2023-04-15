@@ -333,6 +333,8 @@ impl<R: RTraits> PMTiles<R> {
             let mut compression_writer = compress(self.internal_compression, output)?;
             let vec = serde_json::to_vec(&meta_val)?;
             add_await([compression_writer.write_all(&vec)])?;
+
+            add_await([compression_writer.flush()])?;
         }
         let json_metadata_length = add_await([output.stream_position()])? - json_metadata_offset;
 

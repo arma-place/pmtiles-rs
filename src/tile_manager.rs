@@ -228,7 +228,7 @@ impl<R: RTraits> TileManager<R> {
     }
 }
 
-impl Default for TileManager<Cursor<Vec<u8>>> {
+impl Default for TileManager<Cursor<&[u8]>> {
     fn default() -> Self {
         Self::new(None)
     }

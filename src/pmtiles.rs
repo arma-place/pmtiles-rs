@@ -65,6 +65,27 @@ pub struct PMTiles<R> {
     tile_manager: TileManager<R>,
 }
 
+impl<R> Default for PMTiles<R> {
+    fn default() -> Self {
+        Self {
+            tile_type: TileType::Unknown,
+            internal_compression: Compression::GZip,
+            tile_compression: Compression::Unknown,
+            min_zoom: 0,
+            max_zoom: 0,
+            center_zoom: 0,
+            min_longitude: 0.0,
+            min_latitude: 0.0,
+            max_longitude: 0.0,
+            max_latitude: 0.0,
+            center_longitude: 0.0,
+            center_latitude: 0.0,
+            meta_data: None,
+            tile_manager: TileManager::<R>::new(None),
+        }
+    }
+}
+
 impl PMTiles<Cursor<&[u8]>> {
     /// Constructs a new, empty `PMTiles` archive, with no meta data, an [`internal_compression`](Self::internal_compression) of GZIP and all numeric fields set to `0`.
     ///
@@ -74,61 +95,25 @@ impl PMTiles<Cursor<&[u8]>> {
     pub fn new(tile_type: TileType, tile_compression: Compression) -> Self {
         Self {
             tile_type,
-            internal_compression: Compression::GZip,
             tile_compression,
-            min_zoom: 0,
-            max_zoom: 0,
-            center_zoom: 0,
-            min_longitude: 0.0,
-            min_latitude: 0.0,
-            max_longitude: 0.0,
-            max_latitude: 0.0,
-            center_longitude: 0.0,
-            center_latitude: 0.0,
-            meta_data: None,
-            tile_manager: TileManager::new(None),
+            ..Default::default()
         }
     }
 }
 
-impl Default for PMTiles<Cursor<Vec<u8>>> {
-    fn default() -> Self {
+impl PMTiles<futures::io::Cursor<&[u8]>> {
+    /// Async version of [`new`](Self::new).
+    ///
+    /// Constructs a new, empty `PMTiles` archive, that works with asynchronous readers / writers.
+    ///
+    /// # Arguments
+    /// * `tile_type` - Type of tiles in this archive
+    /// * `tile_compression` - Compression of tiles in this archive
+    pub fn new_async(tile_type: TileType, tile_compression: Compression) -> Self {
         Self {
-            tile_type: TileType::Unknown,
-            internal_compression: Compression::None,
-            tile_compression: Compression::Unknown,
-            min_zoom: 0,
-            max_zoom: 0,
-            center_zoom: 0,
-            min_longitude: 0.0,
-            min_latitude: 0.0,
-            max_longitude: 0.0,
-            max_latitude: 0.0,
-            center_longitude: 0.0,
-            center_latitude: 0.0,
-            meta_data: None,
-            tile_manager: TileManager::default(),
-        }
-    }
-}
-
-impl Default for PMTiles<futures::io::Cursor<Vec<u8>>> {
-    fn default() -> Self {
-        Self {
-            tile_type: TileType::Unknown,
-            internal_compression: Compression::None,
-            tile_compression: Compression::Unknown,
-            min_zoom: 0,
-            max_zoom: 0,
-            center_zoom: 0,
-            min_longitude: 0.0,
-            min_latitude: 0.0,
-            max_longitude: 0.0,
-            max_latitude: 0.0,
-            center_longitude: 0.0,
-            center_latitude: 0.0,
-            meta_data: None,
-            tile_manager: TileManager::<_>::new(None),
+            tile_type,
+            tile_compression,
+            ..Default::default()
         }
     }
 }
@@ -442,10 +427,10 @@ impl<R: Read + Seek> PMTiles<R> {
     /// # Example
     /// Write the archive to a file.
     /// ```rust
-    /// # use pmtiles2::{PMTiles};
+    /// # use pmtiles2::{PMTiles, TileType, Compression};
     /// # let dir = temp_dir::TempDir::new().unwrap();
     /// # let file_path = dir.path().join("foo.pmtiles");
-    /// let pm_tiles = PMTiles::<std::io::Cursor<_>>::default();
+    /// let pm_tiles = PMTiles::new(TileType::Png, Compression::None);
     /// let mut file = std::fs::File::create(file_path).unwrap();
     /// pm_tiles.to_writer(&mut file).unwrap();
     /// ```
@@ -504,13 +489,13 @@ impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
     /// # Example
     /// Write the archive to a file.
     /// ```rust
-    /// # use pmtiles2::PMTiles;
+    /// # use pmtiles2::{PMTiles, TileType, Compression};
     /// # use futures::io::{AsyncWrite, AsyncWriteExt, AsyncSeekExt};
     /// # use tokio_util::compat::TokioAsyncReadCompatExt;
     /// # let dir = temp_dir::TempDir::new().unwrap();
     /// # let file_path = dir.path().join("foo.pmtiles");
     /// # tokio_test::block_on(async {
-    /// let pm_tiles = PMTiles::<futures::io::Cursor<_>>::default();
+    /// let pm_tiles = PMTiles::new_async(TileType::Png, Compression::None);
     /// let mut out_file = tokio::fs::File::create(file_path).await.unwrap().compat();
     /// pm_tiles.to_async_writer(&mut out_file).await.unwrap();
     /// # })

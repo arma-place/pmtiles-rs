@@ -32,4 +32,6 @@ async-recursion = "1.0.4"
 
 [dev-dependencies]
 temp-dir = "0.1"
+tokio = { version = "1.27.0", features = ["fs"] }
 tokio-test = "0.4.2"
+tokio-util = { version = "0.7.7", features = ["compat"] }

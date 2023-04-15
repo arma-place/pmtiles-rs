@@ -6,7 +6,7 @@ license = "MIT"
 repository = "https://github.com/arma-place/pmtiles-rs/"
 documentation = "https://docs.rs/pmtiles2"
 readme="README.md"
-description = "A low level implementation of the PMTiles format based on the standard Read and Write trait."
+description = "A low level implementation of the PMTiles format based on the standard Read and Write (or AsyncRead and AsyncWrite) traits."
 categories = ["encoding", "parser-implementations", "parsing"]
 keywords = ["pmtiles", "format", "pmtile", "encoding", "decoding"]
 

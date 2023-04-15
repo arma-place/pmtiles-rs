@@ -1,8 +1,16 @@
 //! # `PMTiles`
 //!
-//! A low level implementation of [the `PMTiles` format](https://github.com/protomaps/PMTiles) based on the [`std::io::Read`] and [`std::io::Write`] traits.
+//! A low level implementation of [the `PMTiles` format](https://github.com/protomaps/PMTiles) based on the [`std::io::Read`] and [`std::io::Write`] traits (or their respective asynchronous versions [`futures::io::AsyncRead`] and [`futures::io::AsyncWrite`]).
 //!
 //! ## Examples
+//!
+//! ### A note on the asynchronous versions
+//! In the following examples, the synchronous functions are used instead of their respective asynchronous versions.
+//!
+//! To work with asynchronous readers/writers, simply replace:
+//! - [`PMTiles::from_reader`] with [`PMTiles::from_async_reader`]
+//! - [`PMTiles::to_writer`] with [`PMTiles::to_async_writer`]
+//! - [`PMTiles::new`] with [`PMTiles::new_async`]
 //!
 //! ### Reading from a file
 //! ```rust

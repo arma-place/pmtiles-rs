@@ -7,7 +7,7 @@
 //! ### A note on the asynchronous versions
 //! In the following examples, the synchronous functions are used instead of their respective asynchronous versions.
 //!
-//! To work with asynchronous readers/writers, simply replace:
+//! To work with asynchronous readers/writers, enable the `async`-feature and simply replace:
 //! - [`PMTiles::from_reader`] with [`PMTiles::from_async_reader`]
 //! - [`PMTiles::to_writer`] with [`PMTiles::to_async_writer`]
 //! - [`PMTiles::new`] with [`PMTiles::new_async`]

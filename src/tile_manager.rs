@@ -1,4 +1,5 @@
 use duplicate::duplicate_item;
+#[cfg(feature = "async")]
 use futures::{AsyncRead, AsyncReadExt, AsyncSeekExt};
 use std::{
     collections::{HashMap, HashSet},
@@ -133,10 +134,11 @@ impl<R> TileManager<R> {
 }
 
 #[duplicate_item(
-    async    add_await(code) RTraits                                                  SeekFrom                get_tile_content         get_tile         finish;
-    []       [code]          [Read + Seek]                                            [std::io::SeekFrom]     [get_tile_content]       [get_tile]       [finish];
-    [async]  [code.await]    [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [futures::io::SeekFrom] [get_tile_content_async] [get_tile_async] [finish_async];
+    async    add_await(code) cfg_async_filter       RTraits                                                  SeekFrom                get_tile_content         get_tile         finish;
+    []       [code]          [cfg(all())]           [Read + Seek]                                            [std::io::SeekFrom]     [get_tile_content]       [get_tile]       [finish];
+    [async]  [code.await]    [cfg(feature="async")] [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [futures::io::SeekFrom] [get_tile_content_async] [get_tile_async] [finish_async];
 )]
+#[cfg_async_filter]
 impl<R: RTraits> TileManager<R> {
     async fn get_tile_content(
         reader: &mut Option<R>,

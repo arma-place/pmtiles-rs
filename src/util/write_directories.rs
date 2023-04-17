@@ -1,4 +1,5 @@
 use duplicate::duplicate_item;
+#[cfg(feature = "async")]
 use futures::{AsyncSeekExt, AsyncWrite};
 use std::io::{Cursor, Result, Seek, Write};
 
@@ -28,10 +29,11 @@ impl Default for WriteDirsOverflowStrategy {
 }
 
 #[duplicate_item(
-    fn_name                        async   SeekFrom                input_traits                                      add_await(code) write_directory(directory, output, compression)        only_leaf_pointer_strategy;
-    [write_directories_impl]       []      [std::io::SeekFrom]     [(impl Write + Seek)]                             [code]          [directory.to_writer(output, compression)]             [only_leaf_pointer_strategy];
-    [write_directories_impl_async] [async] [futures::io::SeekFrom] [(impl AsyncWrite + Unpin + Send + AsyncSeekExt)] [code.await]    [directory.to_async_writer(output, compression).await] [only_leaf_pointer_strategy_async];
+    fn_name                        async   cfg_async_filter       SeekFrom                input_traits                                      add_await(code) write_directory(directory, output, compression)        only_leaf_pointer_strategy;
+    [write_directories_impl]       []      [cfg(all())]           [std::io::SeekFrom]     [(impl Write + Seek)]                             [code]          [directory.to_writer(output, compression)]             [only_leaf_pointer_strategy];
+    [write_directories_impl_async] [async] [cfg(feature="async")] [futures::io::SeekFrom] [(impl AsyncWrite + Unpin + Send + AsyncSeekExt)] [code.await]    [directory.to_async_writer(output, compression).await] [only_leaf_pointer_strategy_async];
 )]
+#[cfg_async_filter]
 async fn fn_name(
     output: &mut input_traits,
     all_entries: &[Entry],
@@ -102,6 +104,7 @@ pub fn write_directories(
 /// occurred while writing to `output`.
 ///
 #[allow(clippy::module_name_repetitions)]
+#[cfg(feature = "async")]
 pub async fn write_directories_async(
     output: &mut (impl AsyncWrite + Unpin + Send + AsyncSeekExt),
     all_entries: &[Entry],
@@ -112,10 +115,11 @@ pub async fn write_directories_async(
 }
 
 #[duplicate_item(
-    fn_name                            async   SeekFrom                input_traits                                      add_await(code) write_directory(directory, output, compression);
-    [only_leaf_pointer_strategy]       []      [std::io::SeekFrom]     [(impl Write + Seek)]                             [code]          [directory.to_writer(output, compression)];
-    [only_leaf_pointer_strategy_async] [async] [futures::io::SeekFrom] [(impl AsyncWrite + Unpin + Send + AsyncSeekExt)] [code.await]    [directory.to_async_writer(output, compression).await];
+    fn_name                            cfg_async_filter       async   SeekFrom                input_traits                                      add_await(code) write_directory(directory, output, compression);
+    [only_leaf_pointer_strategy]       [cfg(all())]           []      [std::io::SeekFrom]     [(impl Write + Seek)]                             [code]          [directory.to_writer(output, compression)];
+    [only_leaf_pointer_strategy_async] [cfg(feature="async")] [async] [futures::io::SeekFrom] [(impl AsyncWrite + Unpin + Send + AsyncSeekExt)] [code.await]    [directory.to_async_writer(output, compression).await];
 )]
+#[cfg_async_filter]
 async fn fn_name(
     output: &mut input_traits,
     root_dir_start: SeekFrom,

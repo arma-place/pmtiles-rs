@@ -1,4 +1,6 @@
+#[cfg(feature = "async")]
 use async_recursion::async_recursion;
+#[cfg(feature = "async")]
 use futures::io::{AsyncRead, AsyncReadExt, AsyncSeekExt};
 use std::collections::HashMap;
 use std::io::{Read, Result, Seek};
@@ -103,6 +105,7 @@ pub fn read_directories(
 /// # })
 /// ```
 #[allow(clippy::module_name_repetitions)]
+#[cfg(feature = "async")]
 pub async fn read_directories_async(
     reader: &mut (impl AsyncRead + Unpin + Send + AsyncReadExt + AsyncSeekExt),
     compression: Compression,
@@ -124,10 +127,11 @@ pub async fn read_directories_async(
 }
 
 #[duplicate_item(
-    fn_name              async                      add_await(code) seek_start(reader, offset)                                input_traits                                                    read_directory(reader, len, compression);
-    [read_dir_rec]       []                         [code]          [reader.seek(std::io::SeekFrom::Start(offset))]           [(impl Read + Seek)]                                            [Directory::from_reader(reader, len, compression)];
-    [read_dir_rec_async] [#[async_recursion] async] [code.await]    [reader.seek(futures::io::SeekFrom::Start(offset)).await] [(impl AsyncRead + Unpin + Send + AsyncReadExt + AsyncSeekExt)] [Directory::from_async_reader(reader, len, compression).await];
+    fn_name              cfg_async_filter       async                      add_await(code) seek_start(reader, offset)                                input_traits                                                    read_directory(reader, len, compression);
+    [read_dir_rec]       [cfg(all())]           []                         [code]          [reader.seek(std::io::SeekFrom::Start(offset))]           [(impl Read + Seek)]                                            [Directory::from_reader(reader, len, compression)];
+    [read_dir_rec_async] [cfg(feature="async")] [#[async_recursion] async] [code.await]    [reader.seek(futures::io::SeekFrom::Start(offset)).await] [(impl AsyncRead + Unpin + Send + AsyncReadExt + AsyncSeekExt)] [Directory::from_async_reader(reader, len, compression).await];
 )]
+#[cfg_async_filter]
 async fn fn_name(
     reader: &mut input_traits,
     tiles: &mut HashMap<u64, OffsetLength, RandomState>,

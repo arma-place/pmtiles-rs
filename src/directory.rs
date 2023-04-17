@@ -1,11 +1,17 @@
 use duplicate::duplicate_item;
-use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use integer_encoding::{VarIntAsyncReader, VarIntAsyncWriter, VarIntReader, VarIntWriter};
+use integer_encoding::{VarIntReader, VarIntWriter};
 use std::io::{Read, Result, Write};
 use std::ops::{Index, IndexMut, Range};
 use std::slice::{Iter, SliceIndex};
 
-use crate::util::{compress, compress_async, decompress, decompress_async};
+#[cfg(feature = "async")]
+use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+#[cfg(feature = "async")]
+use integer_encoding::{VarIntAsyncReader, VarIntAsyncWriter};
+
+use crate::util::{compress, decompress};
+#[cfg(feature = "async")]
+use crate::util::{compress_async, decompress_async};
 use crate::Compression;
 
 /// A structure representing a directory entry.
@@ -79,11 +85,12 @@ impl Directory {
 
 impl Directory {
     #[duplicate_item(
-        fn_name                  input_traits                                     decompress(compression, binding)              read_varint(type, reader)                  async;
-        [from_reader_impl]       [impl Read]                                      [decompress(compression, &mut binding)]       [reader.read_varint::<type>()]             [];
-        [from_async_reader_impl] [(impl AsyncRead + Unpin + Send + AsyncReadExt)] [decompress_async(compression, &mut binding)] [reader.read_varint_async::<type>().await] [async];
+        fn_name                  cfg_async_filter       input_traits                                     decompress(compression, binding)              read_varint(type, reader)                  async;
+        [from_reader_impl]       [cfg(all())]           [impl Read]                                      [decompress(compression, &mut binding)]       [reader.read_varint::<type>()]             [];
+        [from_async_reader_impl] [cfg(feature="async")] [(impl AsyncRead + Unpin + Send + AsyncReadExt)] [decompress_async(compression, &mut binding)] [reader.read_varint_async::<type>().await] [async];
     )]
     #[allow(clippy::needless_range_loop)]
+    #[cfg_async_filter]
     async fn fn_name(
         input: &mut input_traits,
         length: u64,
@@ -135,10 +142,11 @@ impl Directory {
     }
 
     #[duplicate_item(
-        fn_name                input_traits                       compress         write_varint(writer, value)              add_await(code) async;
-        [to_writer_impl]       [impl Write]                       [compress]       [writer.write_varint(value)]             [code]          [];
-        [to_async_writer_impl] [(impl AsyncWrite + Unpin + Send)] [compress_async] [writer.write_varint_async(value).await] [code.await]    [async];
+        fn_name                cfg_async_filter       input_traits                       compress         write_varint(writer, value)              add_await(code) async;
+        [to_writer_impl]       [cfg(all())]           [impl Write]                       [compress]       [writer.write_varint(value)]             [code]          [];
+        [to_async_writer_impl] [cfg(feature="async")] [(impl AsyncWrite + Unpin + Send)] [compress_async] [writer.write_varint_async(value).await] [code.await]    [async];
     )]
+    #[cfg_async_filter]
     async fn fn_name(&self, output: &mut input_traits, compression: Compression) -> Result<()> {
         let mut writer = compress(compression, output)?;
 
@@ -236,6 +244,7 @@ impl Directory {
     /// let directory = Directory::from_async_reader(&mut reader, 246, Compression::GZip).await.unwrap();
     /// # })
     /// ```
+    #[cfg(feature = "async")]
     pub async fn from_async_reader(
         input: &mut (impl AsyncRead + Unpin + Send + AsyncReadExt),
         length: u64,
@@ -290,6 +299,7 @@ impl Directory {
     /// directory.to_async_writer(&mut output, Compression::GZip).await.unwrap();
     /// # })
     /// ```
+    #[cfg(feature = "async")]
     pub async fn to_async_writer(
         &self,
         output: &mut (impl AsyncWrite + Unpin + Send),

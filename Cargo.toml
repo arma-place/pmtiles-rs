@@ -14,21 +14,22 @@ keywords = ["pmtiles", "format", "pmtile", "encoding", "decoding"]
 
 [features]
 serde = ["dep:serde"]
+async = ["dep:futures", "dep:async-compression", "dep:async-recursion", "integer-encoding/futures_async"]
 
 [dependencies]
 hilbert_2d = "1"
 deku = "0.15"
-integer-encoding = { version = "3.0", features=["futures_async"] }
+integer-encoding = "3.0"
 flate2 = "1.0"
 serde_json = "1.0"
 serde = { version = "1.0", optional=true, features = ["derive"] }
 brotli = "3.3"
 zstd = { version = "0.11", default-features = false }
 ahash = { version = "0.8.2", default-features = false, features=["std", "no-rng"] }
-futures = "0.3.25"
-async-compression = { version = "0.3.15", features = ["futures-io", "zstd", "gzip", "brotli"] }
+futures = { version = "0.3.25", optional = true }
+async-compression = { version = "0.3.15", optional = true, features = ["futures-io", "zstd", "gzip", "brotli"] }
 duplicate = "1.0.0"
-async-recursion = "1.0.4"
+async-recursion = { version = "1.0.4", optional = true }
 
 [dev-dependencies]
 temp-dir = "0.1"

@@ -41,9 +41,7 @@ pub struct OffsetLength {
 /// # use std::io::Read;
 /// # let bytes: &[u8] = include_bytes!("../../test/stamen_toner(raster)CC-BY+ODbL_z3.pmtiles");
 /// # let mut reader = std::io::Cursor::new(bytes);
-/// let mut header_section = vec![0; 127];
-/// reader.read_exact(&mut header_section).unwrap();
-/// let (_, header) = Header::read(header_section.view_bits(), ()).unwrap();
+/// let header = Header::from_reader(&mut reader).unwrap();
 ///
 /// let entries_map = read_directories(
 ///     &mut reader,

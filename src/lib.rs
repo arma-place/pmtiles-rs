@@ -67,6 +67,7 @@
 #![warn(clippy::expect_used)]
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::multiple_crate_versions)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 mod directory;
 mod header;

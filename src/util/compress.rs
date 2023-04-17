@@ -1,5 +1,6 @@
 use crate::Compression;
 
+#[cfg(feature = "async")]
 use async_compression::futures::{
     bufread::{
         BrotliDecoder as AsyncBrotliDecoder, GzipDecoder as AsyncGzipDecoder,
@@ -12,6 +13,7 @@ use async_compression::futures::{
 };
 use brotli::{CompressorWriter as BrotliEncoder, Decompressor as BrotliDecoder};
 use flate2::{read::GzDecoder, write::GzEncoder};
+#[cfg(feature = "async")]
 use futures::{io::BufReader, AsyncRead, AsyncWrite};
 use zstd::{Decoder as ZSTDDecoder, Encoder as ZSTDEncoder};
 
@@ -71,6 +73,7 @@ pub fn compress<'a>(
 /// while creating the zstd encoder.
 ///
 #[allow(clippy::module_name_repetitions)]
+#[cfg(feature = "async")]
 pub fn compress_async<'a>(
     compression: Compression,
     writer: &'a mut (impl AsyncWrite + Unpin + Send),
@@ -161,6 +164,7 @@ pub fn decompress<'a>(
 /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`],there was an
 /// error while creating the zstd decoder.
 ///
+#[cfg(feature = "async")]
 pub fn decompress_async<'a>(
     compression: Compression,
     compressed_data: &'a mut (impl AsyncRead + Unpin + Send),

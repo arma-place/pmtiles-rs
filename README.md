@@ -22,3 +22,6 @@ pmtiles2 = "0.1"
 
 ### `serde`
 With this feature enabled most public types are (de-)serializable by [serde](https://crates.io/crates/serde).
+
+### `async`
+With this feature enabled all readable / writable types also support asynchronous readers / writers via the [AsyncRead](https://docs.rs/futures/latest/futures/io/trait.AsyncRead.html) and [AsyncWrite](https://docs.rs/futures/latest/futures/io/trait.AsyncWrite.html) traits from the [`futures`-crate](https://docs.rs/futures/latest/futures/index.html).

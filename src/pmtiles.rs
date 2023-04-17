@@ -1,17 +1,20 @@
 use std::io::{Cursor, Read, Result, Seek, Write};
 
 use duplicate::duplicate_item;
+#[cfg(feature = "async")]
 use futures::{AsyncRead, AsyncReadExt, AsyncSeekExt, AsyncWrite, AsyncWriteExt};
 use serde_json::{json, Value as JSONValue};
 
 use crate::{
     header::{LatLng, HEADER_BYTES},
     tile_manager::TileManager,
-    util::{
-        compress, compress_async, decompress, decompress_async, read_directories,
-        read_directories_async, tile_id, write_directories, write_directories_async,
-    },
+    util::{compress, decompress, read_directories, tile_id, write_directories},
     Compression, Header, TileType,
+};
+
+#[cfg(feature = "async")]
+use crate::util::{
+    compress_async, decompress_async, read_directories_async, write_directories_async,
 };
 
 #[derive(Debug)]
@@ -101,6 +104,7 @@ impl PMTiles<Cursor<&[u8]>> {
     }
 }
 
+#[cfg(feature = "async")]
 impl PMTiles<futures::io::Cursor<&[u8]>> {
     /// Async version of [`new`](Self::new).
     ///
@@ -172,6 +176,7 @@ impl<R: Read + Seek> PMTiles<R> {
     }
 }
 
+#[cfg(feature = "async")]
 impl<R: AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt> PMTiles<R> {
     /// Async version of [`get_tile_by_id`](Self::get_tile_by_id).
     ///
@@ -214,6 +219,7 @@ impl<R: Read + Seek> PMTiles<R> {
     }
 }
 
+#[cfg(feature = "async")]
 impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
     async fn parse_meta_data_async(
         compression: Compression,
@@ -231,10 +237,11 @@ impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
 }
 
 #[duplicate_item(
-    fn_name                  async    add_await(code) SeekFrom                RTraits                                                  read_directories         parse_meta_data         from_reader;
-    [from_reader_impl]       []       [code]          [std::io::SeekFrom]     [Read + Seek]                                            [read_directories]       [parse_meta_data]       [from_reader];
-    [from_async_reader_impl] [async]  [code.await]    [futures::io::SeekFrom] [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [read_directories_async] [parse_meta_data_async] [from_async_reader];
+    fn_name                  cfg_async_filter       async    add_await(code) SeekFrom                RTraits                                                  read_directories         parse_meta_data         from_reader;
+    [from_reader_impl]       [cfg(all())]           []       [code]          [std::io::SeekFrom]     [Read + Seek]                                            [read_directories]       [parse_meta_data]       [from_reader];
+    [from_async_reader_impl] [cfg(feature="async")] [async]  [code.await]    [futures::io::SeekFrom] [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [read_directories_async] [parse_meta_data_async] [from_async_reader];
 )]
+#[cfg_async_filter]
 impl<R: RTraits> PMTiles<R> {
     async fn fn_name(mut input: R) -> Result<Self> {
         // HEADER
@@ -291,10 +298,11 @@ impl<R: RTraits> PMTiles<R> {
 }
 
 #[duplicate_item(
-    fn_name                async    add_await(code) RTraits                                                  SeekFrom                WTraits                                    finish         compress         write_directories         to_writer;
-    [to_writer_impl]       []       [code]          [Read + Seek]                                            [std::io::SeekFrom]     [Write + Seek]                             [finish]       [compress]       [write_directories]       [to_writer];
-    [to_async_writer_impl] [async]  [code.await]    [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [futures::io::SeekFrom] [AsyncWrite + Send + Unpin + AsyncSeekExt] [finish_async] [compress_async] [write_directories_async] [to_async_writer];
+    fn_name                cfg_async_filter       async    add_await(code) RTraits                                                  SeekFrom                WTraits                                    finish         compress         write_directories         to_writer;
+    [to_writer_impl]       [cfg(all())]           []       [code]          [Read + Seek]                                            [std::io::SeekFrom]     [Write + Seek]                             [finish]       [compress]       [write_directories]       [to_writer];
+    [to_async_writer_impl] [cfg(feature="async")] [async]  [code.await]    [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [futures::io::SeekFrom] [AsyncWrite + Send + Unpin + AsyncSeekExt] [finish_async] [compress_async] [write_directories_async] [to_async_writer];
 )]
+#[cfg_async_filter]
 impl<R: RTraits> PMTiles<R> {
     #[allow(clippy::wrong_self_convention)]
     async fn fn_name(self, output: &mut (impl WTraits)) -> Result<()> {
@@ -439,6 +447,7 @@ impl<R: Read + Seek> PMTiles<R> {
     }
 }
 
+#[cfg(feature = "async")]
 impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
     /// Async version of [`from_reader`](Self::from_reader).
     ///

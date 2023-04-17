@@ -1,4 +1,5 @@
 pub use compression::*;
+#[cfg(feature = "async")]
 use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 pub use lat_lng::*;
 pub use tile_type::*;
@@ -137,6 +138,7 @@ impl Header {
     /// # Errors
     /// Will return [`Err`] an I/O error occurred while reading from `input`.
     ///
+    #[cfg(feature = "async")]
     pub async fn from_async_reader(
         input: &mut (impl AsyncRead + Unpin + Send),
     ) -> std::io::Result<Self> {
@@ -175,6 +177,7 @@ impl Header {
     /// # Errors
     /// Will return [`Err`] if an I/O error occurred while writing to `output`.
     ///
+    #[cfg(feature = "async")]
     pub async fn to_async_writer(
         &self,
         output: &mut (impl AsyncWrite + Unpin + Send),

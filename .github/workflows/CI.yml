@@ -34,6 +34,11 @@ jobs:
           command: check
           args: --all-features
 
+      - name: Run cargo check (default features)
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
         with:

@@ -8,5 +8,8 @@
     "tileset",
     "varint"
   ],
-  "rust-analyzer.cargo.features": ["serde"]
+  "rust-analyzer.cargo.features": [
+    "serde",
+    "async"
+  ]
 }

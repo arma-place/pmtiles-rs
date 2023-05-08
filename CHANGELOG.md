@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+- Added `filter_range` parameter to `read_directories` & `read_directories_async` (use `..` to have same behavior as before)
+
 ### Added
 
 - Async support via the [`AsyncRead`](https://docs.rs/futures/latest/futures/io/trait.AsyncRead.html) and [`AsyncWrite`](https://docs.rs/futures/latest/futures/io/trait.AsyncWrite.html) traits (must be enabled via the `asnyc` feature flag):
@@ -16,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `get_tile_async`, `get_tile_by_id_async` & `new_async` methods to `Header`
   - Added `compress_async` & `decompress_async` utility functions
   - Added `read_directories_async` & `write_directories_async` utility functions
+- Added `from_reader_partially` & `from_async_reader_partially` methods to `PMTiles`
 
 ### Changed
 - Improved example of `util::read_directories`

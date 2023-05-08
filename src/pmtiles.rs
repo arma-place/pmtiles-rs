@@ -427,7 +427,7 @@ impl<R: Read + Seek> PMTiles<R> {
     /// Same as [`from_reader`](Self::from_reader), but with an extra parameter.
     ///
     /// Reads a `PMTiles` archive from a reader, but only parses tile entries whose tile IDs are included in the filter
-    /// range. Tile entries, that are not included in the range, will appear as missing.
+    /// range. Tiles that are not included in the range will appear as missing.
     ///
     /// This can improve performance in cases where only a limited range of tiles is needed, as whole leaf directories
     /// may be skipped during parsing.
@@ -518,7 +518,7 @@ impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
     /// Same as [`from_async_reader`](Self::from_async_reader), but with an extra parameter.
     ///
     /// Reads a `PMTiles` archive from a reader, but only parses tile entries whose tile IDs are included in the filter
-    /// range. Tile entries, that are not included in the range, will appear as missing.
+    /// range. Tiles that are not included in the range will appear as missing.
     ///
     /// This can improve performance in cases where only a limited range of tiles is needed, as whole leaf directories
     /// may be skipped during parsing.

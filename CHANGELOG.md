@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2023-05-08
+
 ### Breaking Changes
 - Added `filter_range` parameter to `read_directories` & `read_directories_async` (use `..` to have same behavior as before)
 
@@ -60,7 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial public release
 
-[unreleased]: https://github.com/arma-place/pmtiles-rs/compare/0.1.6...HEAD
+[unreleased]: https://github.com/arma-place/pmtiles-rs/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/arma-place/pmtiles-rs/compare/0.1.6...0.2.0
 [0.1.6]: https://github.com/arma-place/pmtiles-rs/compare/0.1.5...0.1.6
 [0.1.5]: https://github.com/arma-place/pmtiles-rs/compare/0.1.4...0.1.5
 [0.1.4]: https://github.com/arma-place/pmtiles-rs/compare/0.1.3...0.1.4

@@ -4,6 +4,7 @@ use async_recursion::async_recursion;
 use futures::io::{AsyncRead, AsyncReadExt, AsyncSeekExt};
 use std::collections::HashMap;
 use std::io::{Read, Result, Seek};
+use std::ops::RangeBounds;
 
 use ahash::RandomState;
 use duplicate::duplicate_item;
@@ -29,6 +30,7 @@ pub struct OffsetLength {
 /// * `compression` - Compression of directories
 /// * `root_dir_offset_length` - Offset and length (in bytes) of root directory section
 /// * `leaf_dir_offset` - Offset (in bytes) of leaf directories section
+/// * `filter_range` - Range of Tile IDs to load (use `..` to include all). This can improve performance in cases where only a limited range of tiles is needed, as whole leaf directories may be skipped.
 ///
 /// # Errors
 /// Will return [`Err`] if there was an error reading the bytes from the reader or while decompressing
@@ -48,6 +50,7 @@ pub struct OffsetLength {
 ///     header.internal_compression,
 ///     (header.root_directory_offset, header.root_directory_length),
 ///     header.leaf_directories_offset,
+///     ..,
 /// ).unwrap();
 /// ```
 pub fn read_directories(
@@ -55,6 +58,7 @@ pub fn read_directories(
     compression: Compression,
     root_dir_offset_length: (u64, u64),
     leaf_dir_offset: u64,
+    filter_range: (impl RangeBounds<u64> + Sync),
 ) -> Result<HashMap<u64, OffsetLength, RandomState>> {
     let mut tiles = HashMap::<u64, OffsetLength, RandomState>::default();
 
@@ -64,6 +68,7 @@ pub fn read_directories(
         compression,
         root_dir_offset_length,
         leaf_dir_offset,
+        &filter_range,
     )?;
 
     Ok(tiles)
@@ -79,6 +84,7 @@ pub fn read_directories(
 /// * `compression` - Compression of directories
 /// * `root_dir_offset_length` - Offset and length (in bytes) of root directory section
 /// * `leaf_dir_offset` - Offset (in bytes) of leaf directories section
+/// * `filter_range` - Range of Tile IDs to load (use `..` to include all). This can improve performance in cases where only a limited range of tiles is needed, as whole leaf directories may be skipped.
 ///
 /// # Errors
 /// Will return [`Err`] if there was an error reading the bytes from the reader or while decompressing
@@ -99,6 +105,7 @@ pub fn read_directories(
 ///     header.internal_compression,
 ///     (header.root_directory_offset, header.root_directory_length),
 ///     header.leaf_directories_offset,
+///     ..,
 /// ).await.unwrap();
 /// # })
 /// ```
@@ -109,6 +116,7 @@ pub async fn read_directories_async(
     compression: Compression,
     root_dir_offset_length: (u64, u64),
     leaf_dir_offset: u64,
+    filter_range: (impl RangeBounds<u64> + Sync + Send),
 ) -> Result<HashMap<u64, OffsetLength, RandomState>> {
     let mut tiles = HashMap::<u64, OffsetLength, RandomState>::default();
 
@@ -118,10 +126,22 @@ pub async fn read_directories_async(
         compression,
         root_dir_offset_length,
         leaf_dir_offset,
+        &filter_range,
     )
     .await?;
 
     Ok(tiles)
+}
+
+/// Get (inclusive) end of range bounds.
+///
+/// Will return [`None`] if range has no end bound.
+fn range_end_inc(range: &impl RangeBounds<u64>) -> Option<u64> {
+    match range.end_bound() {
+        std::ops::Bound::Included(val) => Some(*val),
+        std::ops::Bound::Excluded(val) => Some(*val - 1),
+        std::ops::Bound::Unbounded => None,
+    }
 }
 
 #[duplicate_item(
@@ -136,23 +156,35 @@ async fn fn_name(
     compression: Compression,
     (dir_offset, dir_length): (u64, u64),
     leaf_dir_offset: u64,
+    filter_range: &(impl RangeBounds<u64> + Sync),
 ) -> Result<()> {
     seek_start([reader], [dir_offset])?;
     let directory = read_directory([reader], [dir_length], [compression])?;
+    let range_end = range_end_inc(filter_range).unwrap_or(u64::MAX);
 
     for entry in directory.iter() {
         if entry.is_leaf_dir_entry() {
+            // skip leaf directory, if it starts after range
+            if entry.tile_id > range_end {
+                continue;
+            }
+
             add_await([fn_name(
                 reader,
                 tiles,
                 compression,
                 (leaf_dir_offset + entry.offset, u64::from(entry.length)),
                 leaf_dir_offset,
+                filter_range,
             )])?;
             continue;
         }
 
         for tile_id in entry.tile_id_range() {
+            if !filter_range.contains(&tile_id) {
+                continue;
+            }
+
             tiles.insert(
                 tile_id,
                 OffsetLength {
@@ -178,7 +210,7 @@ mod test {
         let bytes: &[u8] = include_bytes!("../../test/stamen_toner(raster)CC-BY+ODbL_z3.pmtiles");
         let mut reader = Cursor::new(bytes);
 
-        let map = read_directories(&mut reader, Compression::GZip, (127, 246), 395)?;
+        let map = read_directories(&mut reader, Compression::GZip, (127, 246), 395, ..)?;
 
         assert_eq!(map.len(), 85);
 
@@ -207,7 +239,7 @@ mod test {
             include_bytes!("../../test/protomaps_vector_planet_odbl_z10_without_data.pmtiles");
         let mut reader = Cursor::new(bytes);
 
-        let map = read_directories(&mut reader, Compression::GZip, (127, 389), 1173)?;
+        let map = read_directories(&mut reader, Compression::GZip, (127, 389), 1173, ..)?;
 
         assert_eq!(map.len(), 1_398_101);
 
@@ -228,5 +260,13 @@ mod test {
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn test_range_end_inc() {
+        assert_eq!(range_end_inc(&(..)), None);
+        assert_eq!(range_end_inc(&(..=3)), Some(3));
+        assert_eq!(range_end_inc(&(..3)), Some(2));
+        assert_eq!(range_end_inc(&(1..)), None);
     }
 }

@@ -1,4 +1,7 @@
-use std::io::{Cursor, Read, Result, Seek, Write};
+use std::{
+    io::{Cursor, Read, Result, Seek, Write},
+    ops::RangeBounds,
+};
 
 use duplicate::duplicate_item;
 #[cfg(feature = "async")]
@@ -243,7 +246,10 @@ impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
 )]
 #[cfg_async_filter]
 impl<R: RTraits> PMTiles<R> {
-    async fn fn_name(mut input: R) -> Result<Self> {
+    async fn fn_name(
+        mut input: R,
+        tiles_filter_range: (impl RangeBounds<u64> + Sync + Send),
+    ) -> Result<Self> {
         // HEADER
         let header = add_await([Header::from_reader(&mut input)])?;
 
@@ -266,7 +272,7 @@ impl<R: RTraits> PMTiles<R> {
             header.internal_compression,
             (header.root_directory_offset, header.root_directory_length),
             header.leaf_directories_offset,
-            ..,
+            tiles_filter_range,
         )])?;
 
         let mut tile_manager = TileManager::new(Some(input));
@@ -415,7 +421,37 @@ impl<R: Read + Seek> PMTiles<R> {
     /// let pm_tiles = PMTiles::from_reader(file).unwrap();
     /// ```
     pub fn from_reader(input: R) -> Result<Self> {
-        Self::from_reader_impl(input)
+        Self::from_reader_impl(input, ..)
+    }
+
+    /// Same as [`from_reader`](Self::from_reader), but with an extra parameter.
+    ///
+    /// Reads a `PMTiles` archive from a reader, but only parses tile entries whose tile IDs are included in the filter
+    /// range. Tile entries, that are not included in the range, will appear as missing.
+    ///
+    /// This can improve performance in cases where only a limited range of tiles is needed, as whole leaf directories
+    /// may be skipped during parsing.
+    ///
+    /// # Arguments
+    /// * `input` - Reader
+    /// * `tiles_filter_range` - Range of Tile IDs to load
+    ///
+    /// # Errors
+    /// See [`from_reader`](Self::from_reader) for details on possible errors.
+    ///
+    /// # Example
+    /// ```rust
+    /// # use pmtiles2::{PMTiles};
+    /// # let file_path = "./test/stamen_toner(raster)CC-BY+ODbL_z3.pmtiles";
+    /// let mut file = std::fs::File::open(file_path).unwrap();
+    ///
+    /// let pm_tiles = PMTiles::from_reader_partially(file, ..).unwrap();
+    /// ```
+    pub fn from_reader_partially(
+        input: R,
+        tiles_filter_range: (impl RangeBounds<u64> + Sync + Send),
+    ) -> Result<Self> {
+        Self::from_reader_impl(input, tiles_filter_range)
     }
 
     /// Writes the archive to a writer.
@@ -476,7 +512,40 @@ impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
     /// # })
     /// ```
     pub async fn from_async_reader(input: R) -> Result<Self> {
-        Self::from_async_reader_impl(input).await
+        Self::from_async_reader_impl(input, ..).await
+    }
+
+    /// Same as [`from_async_reader`](Self::from_async_reader), but with an extra parameter.
+    ///
+    /// Reads a `PMTiles` archive from a reader, but only parses tile entries whose tile IDs are included in the filter
+    /// range. Tile entries, that are not included in the range, will appear as missing.
+    ///
+    /// This can improve performance in cases where only a limited range of tiles is needed, as whole leaf directories
+    /// may be skipped during parsing.
+    ///
+    /// # Arguments
+    /// * `input` - Reader
+    /// * `tiles_filter_range` - Range of Tile IDs to load
+    ///
+    /// # Errors
+    /// See [`from_async_reader`](Self::from_async_reader) for details on possible errors.
+    ///
+    /// # Example
+    /// ```rust
+    /// # use pmtiles2::PMTiles;
+    /// # use futures::io::{AsyncReadExt, AsyncSeekExt, SeekFrom};
+    /// # tokio_test::block_on(async {
+    /// let bytes = include_bytes!("../test/stamen_toner(raster)CC-BY+ODbL_z3.pmtiles");
+    /// let mut reader = futures::io::Cursor::new(bytes);
+    ///
+    /// let pm_tiles = PMTiles::from_async_reader_partially(reader, ..).await.unwrap();
+    /// # })
+    /// ```
+    pub async fn from_async_reader_partially(
+        input: R,
+        tiles_filter_range: (impl RangeBounds<u64> + Sync + Send),
+    ) -> Result<Self> {
+        Self::from_async_reader_impl(input, tiles_filter_range).await
     }
 
     /// Async version of [`to_writer`](Self::to_writer).

@@ -58,7 +58,7 @@ pub fn read_directories(
     compression: Compression,
     root_dir_offset_length: (u64, u64),
     leaf_dir_offset: u64,
-    filter_range: (impl RangeBounds<u64> + Sync),
+    filter_range: impl RangeBounds<u64>,
 ) -> Result<HashMap<u64, OffsetLength, RandomState>> {
     let mut tiles = HashMap::<u64, OffsetLength, RandomState>::default();
 
@@ -145,9 +145,9 @@ fn range_end_inc(range: &impl RangeBounds<u64>) -> Option<u64> {
 }
 
 #[duplicate_item(
-    fn_name              cfg_async_filter       async                      add_await(code) seek_start(reader, offset)                                input_traits                                                    read_directory(reader, len, compression);
-    [read_dir_rec]       [cfg(all())]           []                         [code]          [reader.seek(std::io::SeekFrom::Start(offset))]           [(impl Read + Seek)]                                            [Directory::from_reader(reader, len, compression)];
-    [read_dir_rec_async] [cfg(feature="async")] [#[async_recursion] async] [code.await]    [reader.seek(futures::io::SeekFrom::Start(offset)).await] [(impl AsyncRead + Unpin + Send + AsyncReadExt + AsyncSeekExt)] [Directory::from_async_reader(reader, len, compression).await];
+    fn_name              cfg_async_filter       async                      add_await(code) seek_start(reader, offset)                                 FilterRangeTraits                       input_traits                                                    read_directory(reader, len, compression);
+    [read_dir_rec]       [cfg(all())]           []                         [code]          [reader.seek(std::io::SeekFrom::Start(offset))]            [(impl RangeBounds<u64>)]               [(impl Read + Seek)]                                            [Directory::from_reader(reader, len, compression)];
+    [read_dir_rec_async] [cfg(feature="async")] [#[async_recursion] async] [code.await]    [reader.seek(futures::io::SeekFrom::Start(offset)).await]  [(impl RangeBounds<u64> + Sync + Send)] [(impl AsyncRead + Unpin + Send + AsyncReadExt + AsyncSeekExt)] [Directory::from_async_reader(reader, len, compression).await];
 )]
 #[cfg_async_filter]
 async fn fn_name(
@@ -156,7 +156,7 @@ async fn fn_name(
     compression: Compression,
     (dir_offset, dir_length): (u64, u64),
     leaf_dir_offset: u64,
-    filter_range: &(impl RangeBounds<u64> + Sync),
+    filter_range: &FilterRangeTraits,
 ) -> Result<()> {
     seek_start([reader], [dir_offset])?;
     let directory = read_directory([reader], [dir_length], [compression])?;

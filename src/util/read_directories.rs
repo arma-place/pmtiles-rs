@@ -30,7 +30,7 @@ pub struct OffsetLength {
 /// * `compression` - Compression of directories
 /// * `root_dir_offset_length` - Offset and length (in bytes) of root directory section
 /// * `leaf_dir_offset` - Offset (in bytes) of leaf directories section
-/// * `filter_range` - Range of Tile IDs to load (use `..` to include all). This can improve performance in cases where only a limited range of tiles is needed, as whole leaf directories may be skipped.
+/// * `filter_range` - Range of Tile IDs to load (use `..` to include all). This can improve performance in cases where only a limited range of tiles is needed, as whole leaf directories may be skipped during parsing.
 ///
 /// # Errors
 /// Will return [`Err`] if there was an error reading the bytes from the reader or while decompressing
@@ -84,7 +84,7 @@ pub fn read_directories(
 /// * `compression` - Compression of directories
 /// * `root_dir_offset_length` - Offset and length (in bytes) of root directory section
 /// * `leaf_dir_offset` - Offset (in bytes) of leaf directories section
-/// * `filter_range` - Range of Tile IDs to load (use `..` to include all). This can improve performance in cases where only a limited range of tiles is needed, as whole leaf directories may be skipped.
+/// * `filter_range` - Range of Tile IDs to load (use `..` to include all). This can improve performance in cases where only a limited range of tiles is needed, as whole leaf directories may be skipped during parsing.
 ///
 /// # Errors
 /// Will return [`Err`] if there was an error reading the bytes from the reader or while decompressing

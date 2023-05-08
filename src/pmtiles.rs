@@ -266,6 +266,7 @@ impl<R: RTraits> PMTiles<R> {
             header.internal_compression,
             (header.root_directory_offset, header.root_directory_length),
             header.leaf_directories_offset,
+            ..,
         )])?;
 
         let mut tile_manager = TileManager::new(Some(input));

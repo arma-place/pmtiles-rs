@@ -240,16 +240,13 @@ impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
 }
 
 #[duplicate_item(
-    fn_name                  cfg_async_filter       async    add_await(code) SeekFrom                RTraits                                                  read_directories         parse_meta_data         from_reader;
-    [from_reader_impl]       [cfg(all())]           []       [code]          [std::io::SeekFrom]     [Read + Seek]                                            [read_directories]       [parse_meta_data]       [from_reader];
-    [from_async_reader_impl] [cfg(feature="async")] [async]  [code.await]    [futures::io::SeekFrom] [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [read_directories_async] [parse_meta_data_async] [from_async_reader];
+    fn_name                  cfg_async_filter       async    add_await(code) SeekFrom                FilterRangeTraits                RTraits                                                  read_directories         parse_meta_data         from_reader;
+    [from_reader_impl]       [cfg(all())]           []       [code]          [std::io::SeekFrom]     [RangeBounds<u64>]               [Read + Seek]                                            [read_directories]       [parse_meta_data]       [from_reader];
+    [from_async_reader_impl] [cfg(feature="async")] [async]  [code.await]    [futures::io::SeekFrom] [RangeBounds<u64> + Sync + Send] [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [read_directories_async] [parse_meta_data_async] [from_async_reader];
 )]
 #[cfg_async_filter]
 impl<R: RTraits> PMTiles<R> {
-    async fn fn_name(
-        mut input: R,
-        tiles_filter_range: (impl RangeBounds<u64> + Sync + Send),
-    ) -> Result<Self> {
+    async fn fn_name(mut input: R, tiles_filter_range: impl FilterRangeTraits) -> Result<Self> {
         // HEADER
         let header = add_await([Header::from_reader(&mut input)])?;
 
@@ -449,7 +446,7 @@ impl<R: Read + Seek> PMTiles<R> {
     /// ```
     pub fn from_reader_partially(
         input: R,
-        tiles_filter_range: (impl RangeBounds<u64> + Sync + Send),
+        tiles_filter_range: impl RangeBounds<u64>,
     ) -> Result<Self> {
         Self::from_reader_impl(input, tiles_filter_range)
     }

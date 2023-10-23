@@ -70,6 +70,7 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 mod directory;
+#[allow(clippy::ignored_unit_patterns)]
 mod header;
 mod pmtiles;
 mod tile_manager;

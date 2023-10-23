@@ -69,10 +69,7 @@ impl<R> TileManager<R> {
 
         self.data_by_hash.insert(hash, vec);
 
-        self.ids_by_hash
-            .entry(hash)
-            .or_insert_with(HashSet::new)
-            .insert(tile_id);
+        self.ids_by_hash.entry(hash).or_default().insert(tile_id);
     }
 
     pub(crate) fn add_offset_tile(&mut self, tile_id: u64, offset: u64, length: u32) {

@@ -130,7 +130,7 @@ impl Header {
 
     /// Async version of [`from_reader`](Self::from_reader).
     ///
-    /// Reads a header from a [`futures::io::AsyncRead`] and returns it.
+    /// Reads a header from a [`futures::AsyncRead`] and returns it.
     ///
     /// # Arguments
     /// * `input` - Reader
@@ -169,7 +169,7 @@ impl Header {
 
     /// Async version of [`to_writer`](Self::to_writer).
     ///
-    /// Writes the header to a [`futures::io::AsyncWrite`].
+    /// Writes the header to a [`futures::AsyncWrite`].
     ///
     /// # Arguments
     /// * `output` - Writer to write header to

@@ -221,7 +221,7 @@ impl Directory {
 
     /// Async version of [`from_reader`](Self::from_reader).
     ///
-    /// Reads a directory from a [`futures::io::AsyncRead`] and returns it.
+    /// Reads a directory from a [`futures::AsyncRead`] and returns it.
     ///
     /// # Arguments
     /// * `input` - Reader including directory bytes
@@ -278,7 +278,7 @@ impl Directory {
 
     /// Async version of [`to_writer`](Self::to_writer).
     ///
-    /// Writes the directory to a [`futures::io::AsyncWrite`].
+    /// Writes the directory to a [`futures::AsyncWrite`].
     ///
     /// # Arguments
     /// * `output` - Writer to write directory to

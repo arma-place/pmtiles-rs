@@ -85,7 +85,9 @@ impl<R> TileManager<R> {
         match self.tile_by_id.remove(&tile_id) {
             None => false, // tile was not found
             Some(tile) => {
-                let TileManagerTile::Hash(hash) = tile else { return true; };
+                let TileManagerTile::Hash(hash) = tile else {
+                    return true;
+                };
 
                 // find set which includes all ids which have this hash
                 let ids_with_hash = self.ids_by_hash.entry(hash).or_default();
@@ -192,7 +194,14 @@ impl<R: RTraits> TileManager<R> {
         let mut offset_length_map = HashMap::<u64, OffsetLen, RandomState>::default();
 
         for (tile_id, tile) in id_tile {
-            let Some(mut tile_data) = add_await([Self::get_tile_content(&mut self.reader, &self.data_by_hash, &tile)])? else { continue; };
+            let Some(mut tile_data) = add_await([Self::get_tile_content(
+                &mut self.reader,
+                &self.data_by_hash,
+                &tile,
+            )])?
+            else {
+                continue;
+            };
 
             let hash = if let TileManagerTile::Hash(h) = tile {
                 h

@@ -1,6 +1,6 @@
 //! # `PMTiles`
 //!
-//! A low level implementation of [the `PMTiles` format](https://github.com/protomaps/PMTiles) based on the [`std::io::Read`] and [`std::io::Write`] traits (or their respective asynchronous versions [`futures::AsyncRead`] and [`futures::AsyncWrite`]).
+//! A low level implementation of [the `PMTiles` format](https://github.com/protomaps/PMTiles) based on the [`std::io::Read`] and [`std::io::Write`] traits (or their respective asynchronous versions [`futures::io::AsyncRead`] and [`futures::io::AsyncWrite`]).
 //!
 //! ## Examples
 //!

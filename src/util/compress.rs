@@ -62,7 +62,7 @@ pub fn compress<'a>(
 
 /// Async version of [`compress`].
 ///
-/// Returns a new instance of [`futures::AsyncWrite`] that will emit compressed data to the underlying writer.
+/// Returns a new instance of [`futures::io::AsyncWrite`] that will emit compressed data to the underlying writer.
 ///
 /// # Arguments
 /// * `compression` - Compression to use
@@ -154,7 +154,7 @@ pub fn decompress<'a>(
 
 /// Async version of [`decompress`].
 ///
-/// Returns a new instance of [`futures::AsyncRead`] that will emit uncompressed data from an the underlying reader.
+/// Returns a new instance of [`futures::io::AsyncRead`] that will emit uncompressed data from an the underlying reader.
 ///
 /// # Arguments
 /// * `compression` - Compression to use

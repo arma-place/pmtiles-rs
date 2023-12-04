@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - Add `from_bytes` associated function to `PMTiles`-, `Header`- and `Directory`-struct
 - Add `from_bytes_partially` associated function to `PMTiles`-struct
+- Add `find_entry_for_tile_id` method to `Directory`-struct
 
 ## [0.2.2] - 2023-10-23
 - Tweaks to documentation

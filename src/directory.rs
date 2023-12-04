@@ -332,6 +332,18 @@ impl Directory {
     }
 }
 
+impl Directory {
+    /// Find a entry, which includes given `tile_id`.
+    ///
+    /// Returns [`None`] if the directory does not include a [`Entry`] that matches `tile_id`.
+    ///
+    pub fn find_entry_for_tile_id(&self, tile_id: u64) -> Option<&Entry> {
+        self.entries
+            .iter()
+            .find(|e| !e.is_leaf_dir_entry() && e.tile_id_range().contains(&tile_id))
+    }
+}
+
 impl<I: SliceIndex<[Entry]>> Index<I> for Directory {
     type Output = I::Output;
 

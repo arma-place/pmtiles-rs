@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.2.3]
 - Add `from_bytes` associated function to `PMTiles`-, `Header`- and `Directory`-struct
 - Add `from_bytes_partially` associated function to `PMTiles`-struct
 - Add `find_entry_for_tile_id` method to `Directory`-struct
@@ -73,7 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial public release
 
-[unreleased]: https://github.com/arma-place/pmtiles-rs/compare/v0.2.2...HEAD
+[unreleased]: https://github.com/arma-place/pmtiles-rs/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/arma-place/pmtiles-rs/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/arma-place/pmtiles-rs/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/arma-place/pmtiles-rs/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/arma-place/pmtiles-rs/compare/v0.1.6...v0.2.0

@@ -31,7 +31,7 @@ impl TileType {
     /// Returns [`None`] if a concrete `Content-Type` could not be determined.
     pub const fn http_content_type(&self) -> Option<&'static str> {
         match self {
-            Self::Mvt => Some("application/x-protobuf"),
+            Self::Mvt => Some("application/vnd.mapbox-vector-tile"),
             Self::Png => Some("image/png"),
             Self::Jpeg => Some("image/jpeg"),
             Self::WebP => Some("image/webp"),
@@ -51,7 +51,7 @@ mod test {
 
         assert_eq!(
             TileType::Mvt.http_content_type(),
-            Some("application/x-protobuf")
+            Some("application/vnd.mapbox-vector-tile")
         );
 
         assert_eq!(TileType::Png.http_content_type(), Some("image/png"));

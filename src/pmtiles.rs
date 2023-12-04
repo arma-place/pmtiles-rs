@@ -457,7 +457,7 @@ impl<R: Read + Seek> PMTiles<R> {
     /// possible archive size.
     ///
     /// This takes ownership of the object so all data does not need to be copied.
-    /// This prevents large memory consumption when writing large `PMTiles` archives.  
+    /// This prevents large memory consumption when writing large `PMTiles` archives.
     ///
     /// # Arguments
     /// * `output` - Writer to write data to
@@ -608,7 +608,7 @@ impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
     /// possible archive size.
     ///
     /// This takes ownership of the object so all data does not need to be copied.
-    /// This prevents large memory consumption when writing large `PMTiles` archives.  
+    /// This prevents large memory consumption when writing large `PMTiles` archives.
     ///
     /// # Arguments
     /// * `output` - Writer to write data to

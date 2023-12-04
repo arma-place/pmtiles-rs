@@ -195,7 +195,7 @@ impl Directory {
     /// # Arguments
     /// * `input` - Reader including directory bytes
     /// * `length` - Length of the directory (in bytes)
-    /// * `compression` - Compression of the  directory
+    /// * `compression` - Compression of the directory
     ///
     /// # Errors
     /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`], the data is not compressed correctly
@@ -219,7 +219,7 @@ impl Directory {
         Self::from_reader_impl(input, length, compression)
     }
 
-    /// Reads a directory from anything that can be turned into a  byte slice (e.g. [`Vec<u8>`]).
+    /// Reads a directory from anything that can be turned into a byte slice (e.g. [`Vec<u8>`]).
     ///
     /// # Arguments
     /// * `bytes` - Input bytes
@@ -249,7 +249,7 @@ impl Directory {
     /// # Arguments
     /// * `input` - Reader including directory bytes
     /// * `length` - Length of the directory (in bytes)
-    /// * `compression` - Compression of the  directory
+    /// * `compression` - Compression of the directory
     ///
     /// # Errors
     /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`], the data is not compressed correctly

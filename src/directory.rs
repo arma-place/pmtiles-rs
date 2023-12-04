@@ -219,6 +219,29 @@ impl Directory {
         Self::from_reader_impl(input, length, compression)
     }
 
+    /// Reads a directory from anything that can be turned into a  byte slice (e.g. [`Vec<u8>`]).
+    ///
+    /// # Arguments
+    /// * `bytes` - Input bytes
+    /// * `compression` - Compression of the directory
+    ///
+    /// # Errors
+    /// Will return [`Err`] an I/O error occurred while reading from `input`.
+    ///
+    /// # Example
+    /// ```rust
+    /// # use pmtiles2::{Directory, Compression};
+    /// let bytes = include_bytes!("../test/stamen_toner(raster)CC-BY+ODbL_z3.pmtiles");
+    /// let directory = Directory::from_bytes(&bytes[127..], Compression::GZip).unwrap();
+    /// ```
+    ///
+    pub fn from_bytes(bytes: impl AsRef<[u8]>, compression: Compression) -> std::io::Result<Self> {
+        let length = bytes.as_ref().len() as u64;
+        let mut reader = std::io::Cursor::new(bytes);
+
+        Self::from_reader(&mut reader, length, compression)
+    }
+
     /// Async version of [`from_reader`](Self::from_reader).
     ///
     /// Reads a directory from a [`futures::io::AsyncRead`](https://docs.rs/futures/latest/futures/io/trait.AsyncRead.html) and returns it.

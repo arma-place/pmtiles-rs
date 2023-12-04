@@ -128,6 +128,27 @@ impl Header {
         Ok(header)
     }
 
+    /// Reads a header from a anything that can be turned into a byte slice (e.g. [`Vec<u8>`]).
+    ///
+    /// # Arguments
+    /// * `bytes` - Input bytes
+    ///
+    /// # Errors
+    /// Will return [`Err`] an I/O error occurred while reading from `input`.
+    ///
+    /// # Example
+    /// ```rust
+    /// # use pmtiles2::{Header};
+    /// let bytes = include_bytes!("../../test/stamen_toner(raster)CC-BY+ODbL_z3.pmtiles");
+    /// let header = Header::from_bytes(bytes).unwrap();
+    /// ```
+    ///
+    pub fn from_bytes(bytes: impl AsRef<[u8]>) -> std::io::Result<Self> {
+        let mut reader = std::io::Cursor::new(bytes);
+
+        Self::from_reader(&mut reader)
+    }
+
     /// Async version of [`from_reader`](Self::from_reader).
     ///
     /// Reads a header from a [`futures::io::AsyncRead`](https://docs.rs/futures/latest/futures/io/trait.AsyncRead.html) and returns it.

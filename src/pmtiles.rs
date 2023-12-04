@@ -481,6 +481,61 @@ impl<R: Read + Seek> PMTiles<R> {
     }
 }
 
+impl<T: AsRef<[u8]>> PMTiles<Cursor<T>> {
+    /// Reads a `PMTiles` archive from anything that can be turned into a byte slice (e.g. [`Vec<u8>`]).
+    ///
+    /// # Arguments
+    /// * `bytes` - Input bytes
+    ///
+    /// # Errors
+    /// Will return [`Err`] if there was any kind of I/O error while reading from `input`, the data
+    /// stream was no valid `PMTiles` archive or the internal compression of the archive is set to "Unknown".
+    ///
+    /// # Example
+    /// ```rust
+    /// # use pmtiles2::{PMTiles};
+    /// let bytes = include_bytes!("../test/stamen_toner(raster)CC-BY+ODbL_z3.pmtiles");
+    /// let pm_tiles = PMTiles::from_bytes(bytes).unwrap();
+    /// ```
+    ///
+    pub fn from_bytes(bytes: T) -> std::io::Result<Self> {
+        let reader = std::io::Cursor::new(bytes);
+
+        Self::from_reader(reader)
+    }
+
+    /// Same as [`from_bytes`](Self::from_bytes), but with an extra parameter.
+    ///
+    /// Reads a `PMTiles` archive from something that can be turned into a byte slice (e.g. [`Vec<u8>`]),
+    /// but only parses tile entries whose tile IDs are included in the filter range. Tiles that are not
+    /// included in the range will appear as missing.
+    ///
+    /// This can improve performance in cases where only a limited range of tiles is needed, as whole leaf directories
+    /// may be skipped during parsing.
+    ///
+    /// # Arguments
+    /// * `bytes` - Input bytes
+    /// * `tiles_filter_range` - Range of Tile IDs to load
+    ///
+    /// # Errors
+    /// See [`from_bytes`](Self::from_bytes) for details on possible errors.
+    ///
+    /// # Example
+    /// ```rust
+    /// # use pmtiles2::{PMTiles};
+    /// let bytes = include_bytes!("../test/stamen_toner(raster)CC-BY+ODbL_z3.pmtiles");
+    /// let pm_tiles = PMTiles::from_bytes_partially(bytes, ..).unwrap();
+    /// ```
+    pub fn from_bytes_partially(
+        bytes: T,
+        tiles_filter_range: impl RangeBounds<u64>,
+    ) -> Result<Self> {
+        let reader = std::io::Cursor::new(bytes);
+
+        Self::from_reader_partially(reader, tiles_filter_range)
+    }
+}
+
 #[cfg(feature = "async")]
 impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
     /// Async version of [`from_reader`](Self::from_reader).

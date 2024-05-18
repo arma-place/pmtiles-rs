@@ -72,6 +72,21 @@ pub fn compress<'a>(
 /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or an error occurred
 /// while creating the zstd encoder.
 ///
+/// # Example
+/// ```rust
+/// # use futures::io::{AsyncWriteExt};
+/// # use pmtiles2::{util::compress_async, Compression};
+/// # tokio_test::block_on(async {
+/// let mut output = Vec::<u8>::new();
+///
+/// let mut writer = compress_async(Compression::GZip, &mut output).unwrap();
+///
+/// let data_to_compress: Vec<u8> = vec![1, 3, 3, 7, 0, 4, 2, 0, 6, 9];
+/// writer.write_all(&data_to_compress).await.unwrap();
+///
+/// writer.close().await.unwrap(); // do not forget to close writer to make sure it is done writing
+/// # })
+/// ```
 #[allow(clippy::module_name_repetitions)]
 #[cfg(feature = "async")]
 pub fn compress_async<'a>(

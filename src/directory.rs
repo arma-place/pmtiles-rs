@@ -142,9 +142,9 @@ impl Directory {
     }
 
     #[duplicate_item(
-        fn_name                cfg_async_filter       input_traits                       compress         write_varint(writer, value)              add_await(code) async;
-        [to_writer_impl]       [cfg(all())]           [impl Write]                       [compress]       [writer.write_varint(value)]             [code]          [];
-        [to_async_writer_impl] [cfg(feature="async")] [(impl AsyncWrite + Unpin + Send)] [compress_async] [writer.write_varint_async(value).await] [code.await]    [async];
+        fn_name                cfg_async_filter       input_traits                       compress         flush   write_varint(writer, value)              add_await(code) async;
+        [to_writer_impl]       [cfg(all())]           [impl Write]                       [compress]       [flush] [writer.write_varint(value)]             [code]          [];
+        [to_async_writer_impl] [cfg(feature="async")] [(impl AsyncWrite + Unpin + Send)] [compress_async] [close] [writer.write_varint_async(value).await] [code.await]    [async];
     )]
     #[cfg_async_filter]
     async fn fn_name(&self, output: &mut input_traits, compression: Compression) -> Result<()> {

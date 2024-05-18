@@ -302,9 +302,9 @@ impl<R: RTraits> PMTiles<R> {
 }
 
 #[duplicate_item(
-    fn_name                cfg_async_filter       async    add_await(code) RTraits                                                  SeekFrom                WTraits                                    finish         compress         write_directories         to_writer;
-    [to_writer_impl]       [cfg(all())]           []       [code]          [Read + Seek]                                            [std::io::SeekFrom]     [Write + Seek]                             [finish]       [compress]       [write_directories]       [to_writer];
-    [to_async_writer_impl] [cfg(feature="async")] [async]  [code.await]    [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [futures::io::SeekFrom] [AsyncWrite + Send + Unpin + AsyncSeekExt] [finish_async] [compress_async] [write_directories_async] [to_async_writer];
+    fn_name                cfg_async_filter       async    add_await(code) RTraits                                                  SeekFrom                WTraits                                    finish         compress         flush   write_directories         to_writer;
+    [to_writer_impl]       [cfg(all())]           []       [code]          [Read + Seek]                                            [std::io::SeekFrom]     [Write + Seek]                             [finish]       [compress]       [flush] [write_directories]       [to_writer];
+    [to_async_writer_impl] [cfg(feature="async")] [async]  [code.await]    [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [futures::io::SeekFrom] [AsyncWrite + Send + Unpin + AsyncSeekExt] [finish_async] [compress_async] [close] [write_directories_async] [to_async_writer];
 )]
 #[cfg_async_filter]
 impl<R: RTraits> PMTiles<R> {

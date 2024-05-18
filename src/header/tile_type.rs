@@ -21,6 +21,9 @@ pub enum TileType {
 
     #[allow(missing_docs)]
     WebP,
+
+    #[allow(missing_docs)]
+    AVIF,
 }
 
 impl TileType {
@@ -35,6 +38,7 @@ impl TileType {
             Self::Png => Some("image/png"),
             Self::Jpeg => Some("image/jpeg"),
             Self::WebP => Some("image/webp"),
+            Self::AVIF => Some("image/avif"),
             Self::Unknown => None,
         }
     }
@@ -59,6 +63,8 @@ mod test {
         assert_eq!(TileType::Jpeg.http_content_type(), Some("image/jpeg"));
 
         assert_eq!(TileType::WebP.http_content_type(), Some("image/webp"));
+
+        assert_eq!(TileType::AVIF.http_content_type(), Some("image/avif"));
     }
 
     #[test]
@@ -84,6 +90,10 @@ mod test {
         let (_, tt4) = TileType::read(slice, deku::ctx::Endian::Little)?;
         assert_eq!(tt4, TileType::WebP);
 
+        let slice = BitSlice::from_slice(&[5]);
+        let (_, tt4) = TileType::read(slice, deku::ctx::Endian::Little)?;
+        assert_eq!(tt4, TileType::AVIF);
+
         Ok(())
     }
 
@@ -108,6 +118,10 @@ mod test {
         let mut output = BitVec::new();
         TileType::WebP.write(&mut output, deku::ctx::Endian::Little)?;
         assert_eq!(output, bitvec!(0, 0, 0, 0, 0, 1, 0, 0));
+
+        let mut output = BitVec::new();
+        TileType::AVIF.write(&mut output, deku::ctx::Endian::Little)?;
+        assert_eq!(output, bitvec!(0, 0, 0, 0, 0, 1, 0, 1));
 
         Ok(())
     }

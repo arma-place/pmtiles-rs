@@ -136,7 +136,16 @@ impl Directory {
 
         // read length
         for i in 0..num_entries {
-            entries[i].length = read_varint([_], [reader])?;
+            let len = read_varint([_], [reader])?;
+
+            if len == 0 {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Length of a directory entry must be greater than 0.",
+                ));
+            }
+
+            entries[i].length = len;
         }
 
         // read offset
@@ -178,6 +187,12 @@ impl Directory {
 
         // write length
         for entry in &self.entries {
+            if entry.length == 0 {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Length of a directory entry must be greater than 0.",
+                ));
+            }
             write_varint([writer], [entry.length])?;
         }
 
@@ -211,7 +226,8 @@ impl Directory {
     ///
     /// # Errors
     /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`], the data is not compressed correctly
-    /// according to `compression` or an I/O error occurred while reading from `input`.
+    /// according to `compression`, the directory includes a entry with a length of 0  or an I/O error occurred while
+    /// reading from `input`.
     ///
     /// # Example
     /// ```rust
@@ -238,7 +254,9 @@ impl Directory {
     /// * `compression` - Compression of the directory
     ///
     /// # Errors
-    /// Will return [`Err`] an I/O error occurred while reading from `input`.
+    /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`], the data is not compressed correctly
+    /// according to `compression`, the directory includes a entry with a length of 0  or an I/O error occurred while
+    /// reading from `input`.
     ///
     /// # Example
     /// ```rust
@@ -265,7 +283,8 @@ impl Directory {
     ///
     /// # Errors
     /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`], the data is not compressed correctly
-    /// according to `compression` or an I/O error occurred while reading from `input`.
+    /// according to `compression`, the directory includes a entry with a length of 0  or an I/O error occurred while
+    /// reading from `input`.
     ///
     /// # Example
     /// ```rust
@@ -295,8 +314,9 @@ impl Directory {
     /// * `compression` - Compression to use
     ///
     /// # Errors
-    /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or an I/O
-    /// error occurred while writing to `output`.
+    /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`], the
+    /// directory includes a entry with a length of 0 or an I/O error occurred
+    /// while writing to `output`.
     ///
     /// # Example
     /// ```rust
@@ -320,8 +340,9 @@ impl Directory {
     /// * `compression` - Compression to use
     ///
     /// # Errors
-    /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or an I/O
-    /// error occurred while writing to `output`.
+    /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`], the
+    /// directory includes a entry with a length of 0 or an I/O error occurred
+    /// while writing to `output`.
     ///
     /// # Example
     /// ```rust
@@ -461,5 +482,23 @@ mod test {
         assert_eq!(output, expected);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_to_writer_invalid_entry() {
+        let mut dir = Directory {
+            entries: Vec::new(),
+        };
+
+        dir.entries.push(Entry {
+            length: 0,
+            offset: 0,
+            run_length: 0,
+            tile_id: 0,
+        });
+
+        let mut buf = Vec::<u8>::with_capacity(10);
+        let mut writer = Cursor::new(&mut buf);
+        assert!(dir.to_writer(&mut writer, ROOT_DIR_COMPRESSION).is_err());
     }
 }

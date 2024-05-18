@@ -56,8 +56,15 @@ impl<R> TileManager<R> {
     }
 
     /// Add tile to writer
-    pub fn add_tile(&mut self, tile_id: u64, data: impl Into<Vec<u8>>) {
+    pub fn add_tile(&mut self, tile_id: u64, data: impl Into<Vec<u8>>) -> Result<()> {
         let vec: Vec<u8> = data.into();
+
+        if vec.is_empty() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "A tile must have at least 1 byte of data.",
+            ));
+        }
 
         // remove tile just to make sure that there
         // are no unreachable tiles
@@ -70,11 +77,22 @@ impl<R> TileManager<R> {
         self.data_by_hash.insert(hash, vec);
 
         self.ids_by_hash.entry(hash).or_default().insert(tile_id);
+
+        Ok(())
     }
 
-    pub(crate) fn add_offset_tile(&mut self, tile_id: u64, offset: u64, length: u32) {
+    pub(crate) fn add_offset_tile(&mut self, tile_id: u64, offset: u64, length: u32) -> Result<()> {
+        if length == 0 {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Length of a directory entry must be greater than 0.",
+            ));
+        }
+
         self.tile_by_id
             .insert(tile_id, TileManagerTile::OffsetLength(offset, length));
+
+        Ok(())
     }
 
     /// Remove tile from writer
@@ -262,7 +280,7 @@ mod test {
 
         let contents = vec![1u8, 3, 3, 7, 4, 2];
 
-        manager.add_tile(42, contents.clone());
+        manager.add_tile(42, contents.clone())?;
 
         let opt = manager.get_tile(42)?;
 
@@ -273,48 +291,54 @@ mod test {
     }
 
     #[test]
-    fn test_add_tile() {
+    fn test_add_tile() -> Result<()> {
         let mut manager = TileManager::default();
 
-        manager.add_tile(1337, vec![1, 3, 3, 7, 4, 2]);
+        manager.add_tile(1337, vec![1, 3, 3, 7, 4, 2])?;
         assert_eq!(manager.data_by_hash.len(), 1);
 
-        manager.add_tile(42, vec![4, 2, 1, 3, 3, 7]);
+        manager.add_tile(42, vec![4, 2, 1, 3, 3, 7])?;
         assert_eq!(manager.data_by_hash.len(), 2);
+
+        Ok(())
     }
 
     #[test]
-    fn test_add_tile_dedup() {
+    fn test_add_tile_dedup() -> Result<()> {
         let mut manager = TileManager::default();
 
         let contents = vec![1u8, 3, 3, 7, 4, 2];
 
-        manager.add_tile(42, contents.clone());
-        manager.add_tile(1337, contents);
+        manager.add_tile(42, contents.clone())?;
+        manager.add_tile(1337, contents)?;
 
         assert_eq!(manager.data_by_hash.len(), 1);
+
+        Ok(())
     }
 
     #[test]
-    fn test_add_tile_update() {
+    fn test_add_tile_update() -> Result<()> {
         let mut manager = TileManager::default();
 
-        manager.add_tile(1337, vec![1, 3, 3, 7, 4, 2]);
+        manager.add_tile(1337, vec![1, 3, 3, 7, 4, 2])?;
         assert_eq!(manager.data_by_hash.len(), 1);
         assert_eq!(manager.tile_by_id.len(), 1);
         assert_eq!(manager.ids_by_hash.len(), 1);
 
-        manager.add_tile(1337, vec![4, 2, 1, 3, 3, 7]);
+        manager.add_tile(1337, vec![4, 2, 1, 3, 3, 7])?;
         assert_eq!(manager.data_by_hash.len(), 1);
         assert_eq!(manager.tile_by_id.len(), 1);
         assert_eq!(manager.ids_by_hash.len(), 1);
+
+        Ok(())
     }
 
     #[test]
-    fn test_remove_tile() {
+    fn test_remove_tile() -> Result<()> {
         let mut manager = TileManager::default();
 
-        manager.add_tile(42, vec![1u8, 3, 3, 7, 4, 2]);
+        manager.add_tile(42, vec![1u8, 3, 3, 7, 4, 2])?;
 
         assert_eq!(manager.tile_by_id.len(), 1);
         assert_eq!(manager.data_by_hash.len(), 1);
@@ -325,6 +349,8 @@ mod test {
         assert_eq!(manager.tile_by_id.len(), 0);
         assert_eq!(manager.data_by_hash.len(), 0);
         assert_eq!(manager.ids_by_hash.len(), 0);
+
+        Ok(())
     }
 
     #[test]
@@ -337,13 +363,13 @@ mod test {
     }
 
     #[test]
-    fn test_remove_tile_dupe() {
+    fn test_remove_tile_dupe() -> Result<()> {
         let mut manager = TileManager::default();
 
         let contents = vec![1u8, 3, 3, 7, 4, 2];
-        manager.add_tile(69, contents.clone());
-        manager.add_tile(42, contents.clone());
-        manager.add_tile(1337, contents);
+        manager.add_tile(69, contents.clone())?;
+        manager.add_tile(42, contents.clone())?;
+        manager.add_tile(1337, contents)?;
 
         assert_eq!(manager.data_by_hash.len(), 1);
 
@@ -358,6 +384,8 @@ mod test {
         manager.remove_tile(42);
         assert_eq!(manager.data_by_hash.len(), 0);
         assert_eq!(manager.ids_by_hash.len(), 0);
+
+        Ok(())
     }
 
     #[test]
@@ -368,9 +396,9 @@ mod test {
         let tile_42 = vec![42u8, 3, 3, 7, 4, 2];
         let tile_1337 = vec![1u8, 3, 3, 7, 4, 2];
 
-        manager.add_tile(0, tile_0.clone());
-        manager.add_tile(42, tile_42.clone());
-        manager.add_tile(1337, tile_1337.clone());
+        manager.add_tile(0, tile_0.clone())?;
+        manager.add_tile(42, tile_42.clone())?;
+        manager.add_tile(1337, tile_1337.clone())?;
 
         let result = manager.finish()?;
         let data = result.data;
@@ -391,9 +419,9 @@ mod test {
 
         let content = vec![1u8, 3, 3, 7, 4, 2];
 
-        manager.add_tile(0, content.clone());
-        manager.add_tile(1, vec![1]);
-        manager.add_tile(1337, content.clone());
+        manager.add_tile(0, content.clone())?;
+        manager.add_tile(1, vec![1])?;
+        manager.add_tile(1337, content.clone())?;
 
         let result = manager.finish()?;
         let data = result.data;
@@ -416,11 +444,11 @@ mod test {
 
         let mut manager = TileManager::new(Some(reader));
 
-        manager.add_offset_tile(0, 0, 4);
-        manager.add_offset_tile(5, 0, 4);
-        manager.add_offset_tile(10, 4, 4);
-        manager.add_tile(15, vec![1, 3, 3, 7]);
-        manager.add_tile(20, vec![1, 3, 3, 7]);
+        manager.add_offset_tile(0, 0, 4)?;
+        manager.add_offset_tile(5, 0, 4)?;
+        manager.add_offset_tile(10, 4, 4)?;
+        manager.add_tile(15, vec![1, 3, 3, 7])?;
+        manager.add_tile(20, vec![1, 3, 3, 7])?;
 
         let result = manager.finish()?;
         let data = result.data;
@@ -451,11 +479,11 @@ mod test {
 
         let content = vec![1u8, 3, 3, 7, 4, 2];
 
-        manager.add_tile(0, content.clone());
-        manager.add_tile(1, content.clone());
-        manager.add_tile(2, content.clone());
-        manager.add_tile(3, content.clone());
-        manager.add_tile(4, content);
+        manager.add_tile(0, content.clone())?;
+        manager.add_tile(1, content.clone())?;
+        manager.add_tile(2, content.clone())?;
+        manager.add_tile(3, content.clone())?;
+        manager.add_tile(4, content)?;
 
         let result = manager.finish()?;
         let directory = result.directory;
@@ -474,10 +502,10 @@ mod test {
         let mut manager = TileManager::default();
 
         // add tiles in random order
-        manager.add_tile(42, vec![42]);
-        manager.add_tile(1337, vec![13, 37]);
-        manager.add_tile(69, vec![69]);
-        manager.add_tile(1, vec![1]);
+        manager.add_tile(42, vec![42])?;
+        manager.add_tile(1337, vec![13, 37])?;
+        manager.add_tile(69, vec![69])?;
+        manager.add_tile(1, vec![1])?;
 
         let result = manager.finish()?;
         let directory = result.directory;

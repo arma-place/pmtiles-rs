@@ -136,8 +136,12 @@ impl<R> PMTiles<R> {
     /// Note that the data should already be compressed if [`Self::tile_compression`] is set to a value other than [`Compression::None`].
     /// The data will **NOT** be compressed automatically.  
     /// The [`util`-module](crate::util) includes utilities to compress data.
-    pub fn add_tile(&mut self, tile_id: u64, data: impl Into<Vec<u8>>) {
-        self.tile_manager.add_tile(tile_id, data);
+    ///
+    /// # Errors
+    /// Will return [`Err`] if `data` converts into an empty `Vec`.
+    ///
+    pub fn add_tile(&mut self, tile_id: u64, data: impl Into<Vec<u8>>) -> Result<()> {
+        self.tile_manager.add_tile(tile_id, data)
     }
 
     /// Removes a tile from this archive.
@@ -279,7 +283,7 @@ impl<R: RTraits> PMTiles<R> {
                 tile_id,
                 header.tile_data_offset + info.offset,
                 info.length,
-            );
+            )?;
         }
 
         Ok(Self {

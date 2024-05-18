@@ -162,7 +162,7 @@ async fn fn_name(
     let directory = read_directory([reader], [dir_length], [compression])?;
     let range_end = range_end_inc(filter_range).unwrap_or(u64::MAX);
 
-    for entry in directory.iter() {
+    for entry in &directory {
         if entry.is_leaf_dir_entry() {
             // skip leaf directory, if it starts after range
             if entry.tile_id > range_end {

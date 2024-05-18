@@ -78,7 +78,19 @@ impl Directory {
     /// Returns an iterator over the directory.
     ///
     /// The iterator yields all entries from start to end.
+    #[deprecated(
+        since = "0.3.0",
+        note = "Directory implements IntoIterator trait, which should be used instead"
+    )]
     pub fn iter(&self) -> Iter<'_, Entry> {
+        self.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a Directory {
+    type IntoIter = Iter<'a, Entry>;
+    type Item = &'a Entry;
+    fn into_iter(self) -> Self::IntoIter {
         self.entries.iter()
     }
 }
@@ -171,7 +183,7 @@ impl Directory {
 
         // write offset
         let mut next_byte = 0u64;
-        for (index, entry) in self.entries.iter().enumerate() {
+        for (index, entry) in self.into_iter().enumerate() {
             let val = if index > 0 && entry.offset == next_byte {
                 0
             } else {
@@ -338,8 +350,7 @@ impl Directory {
     /// Returns [`None`] if the directory does not include a [`Entry`] that matches `tile_id`.
     ///
     pub fn find_entry_for_tile_id(&self, tile_id: u64) -> Option<&Entry> {
-        self.entries
-            .iter()
+        self.into_iter()
             .find(|e| !e.is_leaf_dir_entry() && e.tile_id_range().contains(&tile_id))
     }
 }

@@ -81,3 +81,6 @@ pub mod util;
 pub use self::pmtiles::PMTiles;
 pub use directory::{Directory, Entry};
 pub use header::{Compression, Header, TileType};
+
+/// The recommended MIME Type for a `PMTiles` archive
+pub const MIME_TYPE: &str = "application/vnd.pmtiles";

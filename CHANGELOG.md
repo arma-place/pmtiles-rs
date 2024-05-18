@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0]
+
+### Breaking Changes
+This release includes two breaking changes to align this implementation to the latest PMTiles specification (version 3.4).
+
+#### PMTiles Metadata must be an JSON object
+Version 3.2 of the PMTiles specification clarified that the JSON metadata must be a JSON object.
+
+This brings along two breaking changes:
+- `PMTiles::meta_data` is now of type `serde_json::Map<String, JSONValue>` (was `Option<serde_json::Value>` before)
+- When encountering meta data that is not a JSON object while reading a PMTiles archive, an error is returned. This affects the following functions:
+  - `PMTiles::from_reader`/ `PMTiles::from_async_reader`
+  - `PMTiles::from_reader_partially` / `PMTiles::from_async_reader_partially`
+  - `PMTiles::from_bytes`
+
+#### Directory entries must have a length greater than 0
+Version 3.4 of the PMTiles specification clarified that directory entries must have a length that is greater than `0`. This was implemented with the following breaking changes:
+
+- `PMTiles::add_tile` now returns and `Result` and will error if it is being called with empty data
+- If an entry with a length of `0` is encountered while reading an directory, an error is returned. This affects the following functions:
+  - `PMTiles::from_reader`/ `PMTiles::from_async_reader`
+  - `PMTiles::from_reader_partially` / `PMTiles::from_async_reader_partially`
+  - `PMTiles::from_bytes`
+  - `PMTiles::from_bytes_partially`
+  - `util::read_directories`/ `util::read_directories_async`
+  - `Directory::from_reader`/ `Directory::from_async_reader`
+  - `Directory::from_bytes`
+- Calling `Directory::to_writer` / `Directory::to_async_writer` on a `Directory` including an entry with a length of `0` will result in an error
+
+### Fixed
+- Writing async PMTiles archives is corrupt ([#10](https://github.com/arma-place/pmtiles-rs/issues/10))
+
+### Added
+- Added AVIF tile type (as per PMTiles specification version 3.1)
+- Added recommended MIME type constant [`MIME_TYPE`](https://docs.rs/pmtiles2/0.3.0/pmtiles2/constant.MIME_TYPE.html) (as per PMTiles specification version 3.3)
+
+### Changed
+- Implement [`IntoIterator`](https://doc.rust-lang.org/std/iter/trait.IntoIterator.html) for `Directory`-struct
+- Deprecate `Directory::iter` method in favor of `IntoIterator` trait implementation
+
+Deprecate 
+
 ## [0.2.3]
 - Add `from_bytes` associated function to `PMTiles`-, `Header`- and `Directory`-struct
 - Add `from_bytes_partially` associated function to `PMTiles`-struct
@@ -75,7 +117,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial public release
 
-[unreleased]: https://github.com/arma-place/pmtiles-rs/compare/v0.2.3...HEAD
+[unreleased]: https://github.com/arma-place/pmtiles-rs/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/arma-place/pmtiles-rs/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/arma-place/pmtiles-rs/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/arma-place/pmtiles-rs/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/arma-place/pmtiles-rs/compare/v0.2.0...v0.2.1

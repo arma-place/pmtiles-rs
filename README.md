@@ -15,7 +15,7 @@ Add following lines to your Cargo.toml:
 ```toml
 # Cargo.toml
 [dependencies]
-pmtiles2 = "0.2"
+pmtiles2 = "0.3"
 ```
 
 ## Features

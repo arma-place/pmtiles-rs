@@ -6,7 +6,7 @@ use std::{
 use duplicate::duplicate_item;
 #[cfg(feature = "async")]
 use futures::{AsyncRead, AsyncReadExt, AsyncSeekExt, AsyncWrite, AsyncWriteExt};
-use serde_json::{json, Value as JSONValue};
+use serde_json::{Map as JSONMap, Value as JSONValue};
 
 use crate::{
     header::{LatLng, HEADER_BYTES},
@@ -66,7 +66,7 @@ pub struct PMTiles<R> {
     pub center_latitude: f64,
 
     /// JSON meta data of this archive
-    pub meta_data: Option<JSONValue>,
+    pub meta_data: JSONMap<String, JSONValue>,
 
     tile_manager: TileManager<R>,
 }
@@ -86,7 +86,7 @@ impl<R> Default for PMTiles<R> {
             max_latitude: 0.0,
             center_longitude: 0.0,
             center_latitude: 0.0,
-            meta_data: None,
+            meta_data: JSONMap::new(),
             tile_manager: TileManager::<R>::new(None),
         }
     }
@@ -216,22 +216,35 @@ impl<R: AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt> PMTiles<R> {
     }
 }
 
+impl<R> PMTiles<R> {
+    fn parse_meta_data(val: JSONValue) -> Result<JSONMap<String, JSONValue>> {
+        let JSONValue::Object(map) = val else {
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, ""));
+        };
+
+        Ok(map)
+    }
+}
+
 impl<R: Read + Seek> PMTiles<R> {
-    fn parse_meta_data(compression: Compression, reader: &mut impl Read) -> Result<JSONValue> {
+    fn read_meta_data(
+        compression: Compression,
+        reader: &mut impl Read,
+    ) -> Result<JSONMap<String, JSONValue>> {
         let reader = decompress(compression, reader)?;
 
         let val: JSONValue = serde_json::from_reader(reader)?;
 
-        Ok(val)
+        Self::parse_meta_data(val)
     }
 }
 
 #[cfg(feature = "async")]
 impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
-    async fn parse_meta_data_async(
+    async fn read_meta_data_async(
         compression: Compression,
         reader: &mut (impl AsyncRead + Unpin + Send),
-    ) -> Result<JSONValue> {
+    ) -> Result<JSONMap<String, JSONValue>> {
         let mut reader = decompress_async(compression, reader)?;
 
         let mut output = Vec::with_capacity(2048);
@@ -239,14 +252,14 @@ impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
 
         let val: JSONValue = serde_json::from_slice(&output[..])?;
 
-        Ok(val)
+        Self::parse_meta_data(val)
     }
 }
 
 #[duplicate_item(
-    fn_name                  cfg_async_filter       async    add_await(code) SeekFrom                FilterRangeTraits                RTraits                                                  read_directories         parse_meta_data         from_reader;
-    [from_reader_impl]       [cfg(all())]           []       [code]          [std::io::SeekFrom]     [RangeBounds<u64>]               [Read + Seek]                                            [read_directories]       [parse_meta_data]       [from_reader];
-    [from_async_reader_impl] [cfg(feature="async")] [async]  [code.await]    [futures::io::SeekFrom] [RangeBounds<u64> + Sync + Send] [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [read_directories_async] [parse_meta_data_async] [from_async_reader];
+    fn_name                  cfg_async_filter       async    add_await(code) SeekFrom                FilterRangeTraits                RTraits                                                  read_directories         read_meta_data         from_reader;
+    [from_reader_impl]       [cfg(all())]           []       [code]          [std::io::SeekFrom]     [RangeBounds<u64>]               [Read + Seek]                                            [read_directories]       [read_meta_data]       [from_reader];
+    [from_async_reader_impl] [cfg(feature="async")] [async]  [code.await]    [futures::io::SeekFrom] [RangeBounds<u64> + Sync + Send] [AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt] [read_directories_async] [read_meta_data_async] [from_async_reader];
 )]
 #[cfg_async_filter]
 impl<R: RTraits> PMTiles<R> {
@@ -256,15 +269,15 @@ impl<R: RTraits> PMTiles<R> {
 
         // META DATA
         let meta_data = if header.json_metadata_length == 0 {
-            None
+            JSONMap::new()
         } else {
             add_await([input.seek(SeekFrom::Start(header.json_metadata_offset))])?;
 
             let mut meta_data_reader = (&mut input).take(header.json_metadata_length);
-            Some(add_await([Self::parse_meta_data(
+            add_await([Self::read_meta_data(
                 header.internal_compression,
                 &mut meta_data_reader,
-            )])?)
+            )])?
         };
 
         // DIRECTORIES
@@ -330,9 +343,8 @@ impl<R: RTraits> PMTiles<R> {
         // META DATA
         let json_metadata_offset = root_directory_offset + root_directory_length;
         {
-            let meta_val = self.meta_data.unwrap_or_else(|| json!({}));
             let mut compression_writer = compress(self.internal_compression, output)?;
-            let vec = serde_json::to_vec(&meta_val)?;
+            let vec = serde_json::to_vec(&self.meta_data)?;
             add_await([compression_writer.write_all(&vec)])?;
 
             add_await([compression_writer.flush()])?;
@@ -644,6 +656,7 @@ impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod test {
     use std::io::Cursor;
 
@@ -657,14 +670,14 @@ mod test {
     const PM_TILES_BYTES2: &[u8] = include_bytes!("../test/protomaps(vector)ODbL_firenze.pmtiles");
 
     #[test]
-    fn test_parse_meta_data() -> Result<()> {
-        let meta_data = PMTiles::<Cursor<Vec<u8>>>::parse_meta_data(
+    fn test_read_meta_data() -> Result<()> {
+        let meta_data = PMTiles::<Cursor<Vec<u8>>>::read_meta_data(
             Compression::GZip,
             &mut Cursor::new(&PM_TILES_BYTES[373..373 + 22]),
         )?;
-        assert_eq!(meta_data, json!({}));
+        assert_eq!(meta_data, JSONMap::new());
 
-        let meta_data2 = PMTiles::<Cursor<Vec<u8>>>::parse_meta_data(
+        let meta_data2 = PMTiles::<Cursor<Vec<u8>>>::read_meta_data(
             Compression::GZip,
             &mut Cursor::new(&PM_TILES_BYTES2[530..530 + 266]),
         )?;
@@ -690,7 +703,7 @@ mod test {
                         {"geometry":"Polygon","layer":"mask"}
                     ]
                 }
-            })
+            }).as_object().unwrap().to_owned()
         );
 
         Ok(())
@@ -714,7 +727,7 @@ mod test {
         assert!((85.0 - pm_tiles.max_latitude).abs() < f64::EPSILON);
         assert!(pm_tiles.center_longitude < f64::EPSILON);
         assert!(pm_tiles.center_latitude < f64::EPSILON);
-        assert_eq!(pm_tiles.meta_data, Some(json!({})));
+        assert_eq!(pm_tiles.meta_data, JSONMap::default());
         assert_eq!(pm_tiles.num_tiles(), 85);
 
         Ok(())
@@ -740,7 +753,7 @@ mod test {
         assert!((pm_tiles.center_latitude - 43.779_779).abs() < f64::EPSILON);
         assert_eq!(
             pm_tiles.meta_data,
-            Some(json!({
+            json!({
                 "attribution":"<a href=\"https://protomaps.com\" target=\"_blank\">Protomaps</a> © <a href=\"https://www.openstreetmap.org\" target=\"_blank\"> OpenStreetMap</a>",
                 "tilestats":{
                     "layers":[
@@ -759,7 +772,7 @@ mod test {
                         {"geometry":"Polygon","layer":"mask"}
                     ]
                 }
-            }))
+            }).as_object().unwrap().to_owned()
         );
         assert_eq!(pm_tiles.num_tiles(), 108);
 
@@ -788,7 +801,7 @@ mod test {
         assert!(pm_tiles.center_latitude < f64::EPSILON);
         assert_eq!(
             pm_tiles.meta_data,
-            Some(json!({
+            json!({
                 "attribution": "<a href=\"https://protomaps.com\" target=\"_blank\">Protomaps</a> © <a href=\"https://www.openstreetmap.org\" target=\"_blank\"> OpenStreetMap</a>",
                 "name": "protomaps 2022-11-08T03:35:13Z",
                 "tilestats": {
@@ -939,7 +952,7 @@ mod test {
                         "id": "mask"
                     }
                 ]
-            }))
+            }).as_object().unwrap().to_owned()
         );
         assert_eq!(pm_tiles.num_tiles(), 1_398_101);
 

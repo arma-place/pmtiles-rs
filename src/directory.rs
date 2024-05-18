@@ -5,7 +5,7 @@ use std::ops::{Index, IndexMut, Range};
 use std::slice::{Iter, SliceIndex};
 
 #[cfg(feature = "async")]
-use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use futures::{AsyncReadExt, AsyncWrite, AsyncWriteExt};
 #[cfg(feature = "async")]
 use integer_encoding::{VarIntAsyncReader, VarIntAsyncWriter};
 
@@ -97,9 +97,9 @@ impl<'a> IntoIterator for &'a Directory {
 
 impl Directory {
     #[duplicate_item(
-        fn_name                  cfg_async_filter       input_traits                                     decompress(compression, binding)              read_varint(type, reader)                  async;
-        [from_reader_impl]       [cfg(all())]           [impl Read]                                      [decompress(compression, &mut binding)]       [reader.read_varint::<type>()]             [];
-        [from_async_reader_impl] [cfg(feature="async")] [(impl AsyncRead + Unpin + Send + AsyncReadExt)] [decompress_async(compression, &mut binding)] [reader.read_varint_async::<type>().await] [async];
+        fn_name                  cfg_async_filter       input_traits                         decompress(compression, binding)              read_varint(type, reader)                  async;
+        [from_reader_impl]       [cfg(all())]           [impl Read]                          [decompress(compression, &mut binding)]       [reader.read_varint::<type>()]             [];
+        [from_async_reader_impl] [cfg(feature="async")] [(impl Unpin + Send + AsyncReadExt)] [decompress_async(compression, &mut binding)] [reader.read_varint_async::<type>().await] [async];
     )]
     #[allow(clippy::needless_range_loop)]
     #[cfg_async_filter]
@@ -300,7 +300,7 @@ impl Directory {
     /// ```
     #[cfg(feature = "async")]
     pub async fn from_async_reader(
-        input: &mut (impl AsyncRead + Unpin + Send + AsyncReadExt),
+        input: &mut (impl Unpin + Send + AsyncReadExt),
         length: u64,
         compression: Compression,
     ) -> Result<Self> {

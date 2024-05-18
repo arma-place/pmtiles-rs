@@ -48,7 +48,7 @@ pub struct Header {
     /// Length (in bytes) of tile data section
     pub tile_data_length: u64,
 
-    /// Number of tiles, which are addressable in this PMTiles archive
+    /// Number of tiles, which are addressable in this `PMTiles` archive
     pub num_addressed_tiles: u64,
 
     /// Number of directory entries, that point to a tile
@@ -58,7 +58,7 @@ pub struct Header {
     pub num_tile_content: u64,
 
     /// Indicates whether this archive is clustered, which means that
-    /// all directory entries are ordered in ascending order by tile_ids
+    /// all directory entries are ordered in ascending order by `tile_ids`
     #[deku(bits = 8)]
     pub clustered: bool,
 

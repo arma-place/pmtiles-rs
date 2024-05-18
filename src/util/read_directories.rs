@@ -1,7 +1,7 @@
 #[cfg(feature = "async")]
 use async_recursion::async_recursion;
 #[cfg(feature = "async")]
-use futures::io::{AsyncRead, AsyncReadExt, AsyncSeekExt};
+use futures::io::{AsyncReadExt, AsyncSeekExt};
 use std::collections::HashMap;
 use std::io::{Read, Result, Seek};
 use std::ops::RangeBounds;
@@ -112,7 +112,7 @@ pub fn read_directories(
 #[allow(clippy::module_name_repetitions)]
 #[cfg(feature = "async")]
 pub async fn read_directories_async(
-    reader: &mut (impl AsyncRead + Unpin + Send + AsyncReadExt + AsyncSeekExt),
+    reader: &mut (impl Unpin + Send + AsyncReadExt + AsyncSeekExt),
     compression: Compression,
     root_dir_offset_length: (u64, u64),
     leaf_dir_offset: u64,
@@ -145,9 +145,9 @@ fn range_end_inc(range: &impl RangeBounds<u64>) -> Option<u64> {
 }
 
 #[duplicate_item(
-    fn_name              cfg_async_filter       async                      add_await(code) seek_start(reader, offset)                                 FilterRangeTraits                       input_traits                                                    read_directory(reader, len, compression);
-    [read_dir_rec]       [cfg(all())]           []                         [code]          [reader.seek(std::io::SeekFrom::Start(offset))]            [(impl RangeBounds<u64>)]               [(impl Read + Seek)]                                            [Directory::from_reader(reader, len, compression)];
-    [read_dir_rec_async] [cfg(feature="async")] [#[async_recursion] async] [code.await]    [reader.seek(futures::io::SeekFrom::Start(offset)).await]  [(impl RangeBounds<u64> + Sync + Send)] [(impl AsyncRead + Unpin + Send + AsyncReadExt + AsyncSeekExt)] [Directory::from_async_reader(reader, len, compression).await];
+    fn_name              cfg_async_filter       async                      add_await(code) seek_start(reader, offset)                                 FilterRangeTraits                       input_traits                                        read_directory(reader, len, compression);
+    [read_dir_rec]       [cfg(all())]           []                         [code]          [reader.seek(std::io::SeekFrom::Start(offset))]            [(impl RangeBounds<u64>)]               [(impl Read + Seek)]                                [Directory::from_reader(reader, len, compression)];
+    [read_dir_rec_async] [cfg(feature="async")] [#[async_recursion] async] [code.await]    [reader.seek(futures::io::SeekFrom::Start(offset)).await]  [(impl RangeBounds<u64> + Sync + Send)] [(impl Unpin + Send + AsyncReadExt + AsyncSeekExt)] [Directory::from_async_reader(reader, len, compression).await];
 )]
 #[cfg_async_filter]
 async fn fn_name(

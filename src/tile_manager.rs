@@ -30,7 +30,7 @@ pub struct TileManager<R> {
     /// hash of tile -> bytes of tile
     data_by_hash: HashMap<u64, Vec<u8>>,
 
-    /// tile_id -> hash of tile
+    /// `tile_id` -> hash of tile
     tile_by_id: HashMap<u64, TileManagerTile>,
 
     /// hash of tile -> ids with this hash

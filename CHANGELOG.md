@@ -45,9 +45,7 @@ Version 3.4 of the PMTiles specification clarified that directory entries must h
 
 ### Changed
 - Implement [`IntoIterator`](https://doc.rust-lang.org/std/iter/trait.IntoIterator.html) for `Directory`-struct
-- Deprecate `Directory::iter` method in favor of `IntoIterator` trait implementation
-
-Deprecate 
+- Deprecate `Directory::iter` method in favor of `IntoIterator` trait implementation 
 
 ## [0.2.3]
 - Add `from_bytes` associated function to `PMTiles`-, `Header`- and `Directory`-struct

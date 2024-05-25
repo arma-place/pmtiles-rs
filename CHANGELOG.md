@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fix
+- Add proper error description for cases where meta data is not a JSON object
+
 ## [0.3.0]
 
 ### Breaking Changes

@@ -219,7 +219,10 @@ impl<R: AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt> PMTiles<R> {
 impl<R> PMTiles<R> {
     fn parse_meta_data(val: JSONValue) -> Result<JSONMap<String, JSONValue>> {
         let JSONValue::Object(map) = val else {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, ""));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "PMTiles' metadata must be JSON Object",
+            ));
         };
 
         Ok(map)

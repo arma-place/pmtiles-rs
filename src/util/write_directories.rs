@@ -73,7 +73,7 @@ async fn fn_name(
 /// * `all_entries` - All tile entries
 /// * `compression` - Compression of directories
 /// * `overflow_strategy` - Strategy to use, when root directory does not fit in the first 16kB.
-///                         If [`None`] is passed, the best strategy is chosen automatically.
+///   If [`None`] is passed, the best strategy is chosen automatically.
 ///
 /// # Errors
 /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or an I/O error
@@ -97,7 +97,7 @@ pub fn write_directories(
 /// * `all_entries` - All tile entries
 /// * `compression` - Compression of directories
 /// * `overflow_strategy` - Strategy to use, when root directory does not fit in the first 16kB.
-///                         If [`None`] is passed, the best strategy is chosen automatically.
+///   If [`None`] is passed, the best strategy is chosen automatically.
 ///
 /// # Errors
 /// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or an I/O error

@@ -4,17 +4,21 @@ use crate::Compression;
 use async_compression::futures::{
     bufread::{
         BrotliDecoder as AsyncBrotliDecoder, GzipDecoder as AsyncGzipDecoder,
-        ZstdDecoder as AsyncZstdDecoder,
     },
     write::{
         BrotliEncoder as AsyncBrotliEncoder, GzipEncoder as AsyncGzipEncoder,
-        ZstdEncoder as AsyncZstdEncoder,
     },
+};
+#[cfg(all(feature = "async", not(target_arch = "wasm32")))]
+use async_compression::futures::{
+    bufread::ZstdDecoder as AsyncZstdDecoder,
+    write::ZstdEncoder as AsyncZstdEncoder,
 };
 use brotli::{CompressorWriter as BrotliEncoder, Decompressor as BrotliDecoder};
 use flate2::{read::GzDecoder, write::GzEncoder};
 #[cfg(feature = "async")]
 use futures::{io::BufReader, AsyncRead, AsyncWrite};
+#[cfg(not(target_arch = "wasm32"))]
 use zstd::{Decoder as ZSTDDecoder, Encoder as ZSTDEncoder};
 
 use std::io::{Cursor, Error, ErrorKind, Read, Result, Write};
@@ -56,7 +60,19 @@ pub fn compress<'a>(
             flate2::Compression::default(),
         ))),
         Compression::Brotli => Ok(Box::new(BrotliEncoder::new(writer, 4096, 11, 24))),
-        Compression::ZStd => Ok(Box::new(ZSTDEncoder::new(writer, 0)?.auto_finish())),
+        Compression::ZStd => {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                Ok(Box::new(ZSTDEncoder::new(writer, 0)?.auto_finish()))
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                Err(Error::new(
+                    ErrorKind::Unsupported,
+                    "ZStd compression is not supported on WASM targets",
+                ))
+            }
+        },
     }
 }
 
@@ -101,7 +117,19 @@ pub fn compress_async<'a>(
         Compression::None => Ok(Box::new(writer)),
         Compression::GZip => Ok(Box::new(AsyncGzipEncoder::new(writer))),
         Compression::Brotli => Ok(Box::new(AsyncBrotliEncoder::new(writer))),
-        Compression::ZStd => Ok(Box::new(AsyncZstdEncoder::new(writer))),
+        Compression::ZStd => {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                Ok(Box::new(AsyncZstdEncoder::new(writer)))
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                Err(Error::new(
+                    ErrorKind::Unsupported,
+                    "ZStd compression is not supported on WASM targets",
+                ))
+            }
+        },
     }
 }
 
@@ -163,7 +191,19 @@ pub fn decompress<'a>(
         Compression::None => Ok(Box::new(compressed_data)),
         Compression::GZip => Ok(Box::new(GzDecoder::new(compressed_data))),
         Compression::Brotli => Ok(Box::new(BrotliDecoder::new(compressed_data, 4096))),
-        Compression::ZStd => Ok(Box::new(ZSTDDecoder::new(compressed_data)?)),
+        Compression::ZStd => {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                Ok(Box::new(ZSTDDecoder::new(compressed_data)?))
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                Err(Error::new(
+                    ErrorKind::Unsupported,
+                    "ZStd decompression is not supported on WASM targets",
+                ))
+            }
+        },
     }
 }
 
@@ -196,9 +236,19 @@ pub fn decompress_async<'a>(
         Compression::Brotli => Ok(Box::new(AsyncBrotliDecoder::new(BufReader::new(
             compressed_data,
         )))),
-        Compression::ZStd => Ok(Box::new(AsyncZstdDecoder::new(BufReader::new(
-            compressed_data,
-        )))),
+        Compression::ZStd => {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                Ok(Box::new(AsyncZstdDecoder::new(BufReader::new(compressed_data))))
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                Err(Error::new(
+                    ErrorKind::Unsupported,
+                    "ZStd decompression is not supported on WASM targets",
+                ))
+            }
+        },
     }
 }
 

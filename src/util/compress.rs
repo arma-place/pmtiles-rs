@@ -1,18 +1,13 @@
 use crate::Compression;
 
-#[cfg(feature = "async")]
-use async_compression::futures::{
-    bufread::{
-        BrotliDecoder as AsyncBrotliDecoder, GzipDecoder as AsyncGzipDecoder,
-    },
-    write::{
-        BrotliEncoder as AsyncBrotliEncoder, GzipEncoder as AsyncGzipEncoder,
-    },
-};
 #[cfg(all(feature = "async", not(target_arch = "wasm32")))]
 use async_compression::futures::{
-    bufread::ZstdDecoder as AsyncZstdDecoder,
-    write::ZstdEncoder as AsyncZstdEncoder,
+    bufread::ZstdDecoder as AsyncZstdDecoder, write::ZstdEncoder as AsyncZstdEncoder,
+};
+#[cfg(feature = "async")]
+use async_compression::futures::{
+    bufread::{BrotliDecoder as AsyncBrotliDecoder, GzipDecoder as AsyncGzipDecoder},
+    write::{BrotliEncoder as AsyncBrotliEncoder, GzipEncoder as AsyncGzipEncoder},
 };
 use brotli::{CompressorWriter as BrotliEncoder, Decompressor as BrotliDecoder};
 use flate2::{read::GzDecoder, write::GzEncoder};
@@ -72,7 +67,7 @@ pub fn compress<'a>(
                     "ZStd compression is not supported on WASM targets",
                 ))
             }
-        },
+        }
     }
 }
 
@@ -129,7 +124,7 @@ pub fn compress_async<'a>(
                     "ZStd compression is not supported on WASM targets",
                 ))
             }
-        },
+        }
     }
 }
 
@@ -203,7 +198,7 @@ pub fn decompress<'a>(
                     "ZStd decompression is not supported on WASM targets",
                 ))
             }
-        },
+        }
     }
 }
 
@@ -239,7 +234,9 @@ pub fn decompress_async<'a>(
         Compression::ZStd => {
             #[cfg(not(target_arch = "wasm32"))]
             {
-                Ok(Box::new(AsyncZstdDecoder::new(BufReader::new(compressed_data))))
+                Ok(Box::new(AsyncZstdDecoder::new(BufReader::new(
+                    compressed_data,
+                ))))
             }
             #[cfg(target_arch = "wasm32")]
             {
@@ -248,7 +245,7 @@ pub fn decompress_async<'a>(
                     "ZStd decompression is not supported on WASM targets",
                 ))
             }
-        },
+        }
     }
 }
 

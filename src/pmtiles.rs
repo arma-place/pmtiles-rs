@@ -134,7 +134,7 @@ impl<R> PMTiles<R> {
     /// Adds a tile to this `PMTiles` archive.
     ///
     /// Note that the data should already be compressed if [`Self::tile_compression`] is set to a value other than [`Compression::None`].
-    /// The data will **NOT** be compressed automatically.  
+    /// The data will **NOT** be compressed automatically. \
     /// The [`util`-module](crate::util) includes utilities to compress data.
     ///
     /// # Errors
@@ -159,7 +159,7 @@ impl<R: Read + Seek> PMTiles<R> {
     /// Get data of a tile by its id.
     ///
     /// The returned data is the raw data, meaning It is NOT uncompressed automatically,
-    /// if it was compressed in the first place.  
+    /// if it was compressed in the first place. \
     /// If you need the uncompressed data, take a look at the [`util`-module](crate::util)
     ///
     /// Will return [`Ok`] with an value of [`None`] if no a tile with the specified tile id was found.
@@ -190,7 +190,7 @@ impl<R: AsyncRead + AsyncReadExt + Send + Unpin + AsyncSeekExt> PMTiles<R> {
     /// Get data of a tile by its id.
     ///
     /// The returned data is the raw data, meaning It is NOT uncompressed automatically,
-    /// if it was compressed in the first place.  
+    /// if it was compressed in the first place. \
     /// If you need the uncompressed data, take a look at the [`util`-module](crate::util)
     ///
     /// Will return [`Ok`] with an value of [`None`] if no a tile with the specified tile id was found.
@@ -614,7 +614,7 @@ impl<R: AsyncRead + AsyncSeekExt + Send + Unpin> PMTiles<R> {
     /// ```
     pub async fn from_async_reader_partially(
         input: R,
-        tiles_filter_range: (impl RangeBounds<u64> + Sync + Send),
+        tiles_filter_range: impl RangeBounds<u64> + Sync + Send,
     ) -> Result<Self> {
         Self::from_async_reader_impl(input, tiles_filter_range).await
     }
@@ -963,13 +963,13 @@ mod test {
     }
 
     #[test]
-    #[ignore]
+    #[ignore = "Unwritten test case."]
     fn test_to_writer() -> Result<()> {
         todo!()
     }
 
     #[test]
-    #[ignore]
+    #[ignore = "Unwritten test case."]
     fn test_to_writer_with_leaf_directories() -> Result<()> {
         todo!()
     }

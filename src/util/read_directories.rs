@@ -116,7 +116,7 @@ pub async fn read_directories_async(
     compression: Compression,
     root_dir_offset_length: (u64, u64),
     leaf_dir_offset: u64,
-    filter_range: (impl RangeBounds<u64> + Sync + Send),
+    filter_range: impl RangeBounds<u64> + Sync + Send,
 ) -> Result<HashMap<u64, OffsetLength, RandomState>> {
     let mut tiles = HashMap::<u64, OffsetLength, RandomState>::default();
 

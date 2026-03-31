@@ -17,6 +17,8 @@ use futures::{io::BufReader, AsyncRead, AsyncWrite};
 use zstd::{Decoder as ZSTDDecoder, Encoder as ZSTDEncoder};
 
 use std::io::{Cursor, Error, Read, Result, Write};
+#[cfg(target_arch = "wasm32")]
+use std::io::ErrorKind;
 
 /// Returns a new instance of [`std::io::Write`] that will emit compressed data to the underlying writer.
 ///

@@ -24,10 +24,12 @@ pub enum Compression {
 
     /// Zstandard Compression as defined in [RFC 8478](https://www.rfc-editor.org/rfc/rfc8478)
     ///
-    /// <div class="warning">ZStd is not supported on <code>wasm32</code> targets. Passing this
-    /// variant to <a href="crate::util::compress"><code>compress</code></a>,
-    /// <a href="crate::util::decompress"><code>decompress</code></a>, or their async / <code>_all</code>
-    /// variants on a WASM target will return an <code>Err</code>.</div>
+    /// <div class="warning">
+    ///
+    /// Note that de-/compression of `ZStd` is not supported on `wasm32` targets. Passing this variant
+    /// to [`compress`](crate::util::compress), [`decompress`](crate::util::decompress), or their `_async` / `_all` variants on a WASM target will return an [`Err`].
+    ///
+    /// </div>
     ZStd,
 }
 

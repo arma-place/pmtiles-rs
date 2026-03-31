@@ -22,18 +22,22 @@ use std::io::{Cursor, Error, Read, Result, Write};
 
 /// Returns a new instance of [`std::io::Write`] that will emit compressed data to the underlying writer.
 ///
+/// <div class="warning">
+///
+///  `ZStd` is not supported on `wasm32` targets. Passing
+/// [`Compression::ZStd`] on a WASM target will return an [`Err`] .
+///
+/// </div>
+///
 /// # Arguments
 /// * `compression` - Compression to use
 /// * `writer` - Underlying writer to write compressed data to
 ///
 /// # Errors
-/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or an error occurred
-/// while creating the zstd encoder.
-///
-/// <div class="warning"><a href="crate::Compression::ZStd"><code>Compression::ZStd</code></a>
-/// is not supported on <code>wasm32</code> targets and will return an
-/// <a href="std::io::ErrorKind::Unsupported"><code>Err(ErrorKind::Unsupported)</code></a>
-/// on those targets.</div>
+/// Will return [`Err`] if...
+/// - `compression` is set to [`Compression::Unknown`]
+/// - `compression` is set to [`Compression::ZStd`] on a WASM target
+/// - there was an error while creating the zstd encoder
 ///
 /// # Example
 /// ```rust
@@ -79,18 +83,22 @@ pub fn compress<'a>(
 ///
 /// Returns a new instance of [`futures::io::AsyncWrite`](https://docs.rs/futures/latest/futures/io/trait.AsyncWrite.html) that will emit compressed data to the underlying writer.
 ///
+/// <div class="warning">
+///
+///  `ZStd` is not supported on `wasm32` targets. Passing
+/// [`Compression::ZStd`] on a WASM target will return an [`Err`] .
+///
+/// </div>
+///
 /// # Arguments
 /// * `compression` - Compression to use
 /// * `writer` - Underlying writer to write compressed data to
 ///
 /// # Errors
-/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or an error occurred
-/// while creating the zstd encoder.
-///
-/// <div class="warning"><a href="crate::Compression::ZStd"><code>Compression::ZStd</code></a>
-/// is not supported on <code>wasm32</code> targets and will return an
-/// <a href="std::io::ErrorKind::Unsupported"><code>Err(ErrorKind::Unsupported)</code></a>
-/// on those targets.</div>
+/// Will return [`Err`] if...
+/// - `compression` is set to [`Compression::Unknown`]
+/// - `compression` is set to [`Compression::ZStd`] on a WASM target
+/// - there was an error while creating the zstd encoder
 ///
 /// # Example
 /// ```rust
@@ -136,18 +144,24 @@ pub fn compress_async<'a>(
 
 /// Compresses a byte slice and returns the result as a new [`Vec<u8>`].
 ///
+/// <div class="warning">
+///
+///  `ZStd` is not supported on `wasm32` targets. Passing
+/// [`Compression::ZStd`] on a WASM target will return an [`Err`] .
+///
+/// </div>
+///
 /// # Arguments
 /// * `compression` - Compression to use
 /// * `data` - Data to compress
 ///
 /// # Errors
-/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`], there was an error
-/// while creating the zstd encoder or an error occurred while writing to `data`.
+/// Will return [`Err`] if...
+/// - `compression` is set to [`Compression::Unknown`]
+/// - `compression` is set to [`Compression::ZStd`] on a WASM target
+/// - there was an error while creating the zstd encoder
+/// - there was an error occurred while writing to `data`.
 ///
-/// <div class="warning"><a href="crate::Compression::ZStd"><code>Compression::ZStd</code></a>
-/// is not supported on <code>wasm32</code> targets and will return an
-/// <a href="std::io::ErrorKind::Unsupported"><code>Err(ErrorKind::Unsupported)</code></a>
-/// on those targets.</div>
 #[allow(clippy::module_name_repetitions)]
 pub fn compress_all(compression: Compression, data: &[u8]) -> Result<Vec<u8>> {
     let mut destination = Vec::<u8>::new();
@@ -165,18 +179,22 @@ pub fn compress_all(compression: Compression, data: &[u8]) -> Result<Vec<u8>> {
 
 /// Returns a new instance of [`std::io::Read`] that will emit uncompressed data from an the underlying reader.
 ///
+/// <div class="warning">
+///
+///  `ZStd` is not supported on `wasm32` targets. Passing
+/// [`Compression::ZStd`] on a WASM target will return an [`Err`] .
+///
+/// </div>
+///
 /// # Arguments
 /// * `compression` - Compression to use
 /// * `compressed_data` - Underlying reader with compressed data
 ///
 /// # Errors
-/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`],there was an
-/// error while creating the zstd decoder.
-///
-/// <div class="warning"><a href="crate::Compression::ZStd"><code>Compression::ZStd</code></a>
-/// is not supported on <code>wasm32</code> targets and will return an
-/// <a href="std::io::ErrorKind::Unsupported"><code>Err(ErrorKind::Unsupported)</code></a>
-/// on those targets.</div>
+/// Will return [`Err`] if...
+/// - `compression` is set to [`Compression::Unknown`]
+/// - `compression` is set to [`Compression::ZStd`] on a WASM target
+/// - there was an error while creating the zstd decoder
 ///
 /// # Example
 /// ```rust
@@ -219,18 +237,22 @@ pub fn decompress<'a>(
 ///
 /// Returns a new instance of [`futures::io::AsyncRead`](https://docs.rs/futures/latest/futures/io/trait.AsyncRead.html) that will emit uncompressed data from an the underlying reader.
 ///
+/// <div class="warning">
+///
+///  `ZStd` is not supported on `wasm32` targets. Passing
+/// [`Compression::ZStd`] on a WASM target will return an [`Err`] .
+///
+/// </div>
+///
 /// # Arguments
 /// * `compression` - Compression to use
 /// * `compressed_data` - Underlying reader with compressed data
 ///
 /// # Errors
-/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`],there was an
-/// error while creating the zstd decoder.
-///
-/// <div class="warning"><a href="crate::Compression::ZStd"><code>Compression::ZStd</code></a>
-/// is not supported on <code>wasm32</code> targets and will return an
-/// <a href="std::io::ErrorKind::Unsupported"><code>Err(ErrorKind::Unsupported)</code></a>
-/// on those targets.</div>
+/// Will return [`Err`] if...
+/// - `compression` is set to [`Compression::Unknown`]
+/// - `compression` is set to [`Compression::ZStd`] on a WASM target
+/// - there was an error while creating the zstd decoder
 ///
 #[cfg(feature = "async")]
 pub fn decompress_async<'a>(
@@ -266,6 +288,13 @@ pub fn decompress_async<'a>(
 
 /// Decompresses a byte slice and returns the result as a new [`Vec<u8>`].
 ///
+/// <div class="warning">
+///
+///  `ZStd` is not supported on `wasm32` targets. Passing
+/// [`Compression::ZStd`] on a WASM target will return an [`Err`] .
+///
+/// </div>
+///
 /// # Arguments
 /// * `compression` - Compression to use
 /// * `data` - Data to decompress
@@ -273,14 +302,11 @@ pub fn decompress_async<'a>(
 /// # Errors
 /// Will return [`Err`] if...
 /// - `compression` is set to [`Compression::Unknown`]
+/// - `compression` is set to [`Compression::ZStd`] on a WASM target
 /// - there was an error while creating the zstd decoder
 /// - there was an error reading the `data`
 /// - `data` is not compressed correctly
 ///
-/// <div class="warning"><a href="crate::Compression::ZStd"><code>Compression::ZStd</code></a>
-/// is not supported on <code>wasm32</code> targets and will return an
-/// <a href="std::io::ErrorKind::Unsupported"><code>Err(ErrorKind::Unsupported)</code></a>
-/// on those targets.</div>
 pub fn decompress_all(compression: Compression, data: &[u8]) -> Result<Vec<u8>> {
     let mut data_reader = Cursor::new(data);
 

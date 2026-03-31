@@ -16,9 +16,9 @@ use futures::{io::BufReader, AsyncRead, AsyncWrite};
 #[cfg(not(target_arch = "wasm32"))]
 use zstd::{Decoder as ZSTDDecoder, Encoder as ZSTDEncoder};
 
-use std::io::{Cursor, Error, Read, Result, Write};
 #[cfg(target_arch = "wasm32")]
 use std::io::ErrorKind;
+use std::io::{Cursor, Error, Read, Result, Write};
 
 /// Returns a new instance of [`std::io::Write`] that will emit compressed data to the underlying writer.
 ///
@@ -52,9 +52,7 @@ pub fn compress<'a>(
     writer: &'a mut impl Write,
 ) -> Result<Box<dyn Write + 'a>> {
     match compression {
-        Compression::Unknown => Err(Error::other(
-            "Cannot compress for Compression Unknown",
-        )),
+        Compression::Unknown => Err(Error::other("Cannot compress for Compression Unknown")),
         Compression::None => Ok(Box::new(writer)),
         Compression::GZip => Ok(Box::new(GzEncoder::new(
             writer,
@@ -116,9 +114,7 @@ pub fn compress_async<'a>(
     writer: &'a mut (impl AsyncWrite + Unpin + Send),
 ) -> Result<Box<dyn AsyncWrite + Unpin + Send + 'a>> {
     match compression {
-        Compression::Unknown => Err(Error::other(
-            "Cannot compress for Compression Unknown",
-        )),
+        Compression::Unknown => Err(Error::other("Cannot compress for Compression Unknown")),
         Compression::None => Ok(Box::new(writer)),
         Compression::GZip => Ok(Box::new(AsyncGzipEncoder::new(writer))),
         Compression::Brotli => Ok(Box::new(AsyncBrotliEncoder::new(writer))),
@@ -199,9 +195,7 @@ pub fn decompress<'a>(
     compressed_data: &'a mut impl Read,
 ) -> Result<Box<dyn Read + 'a>> {
     match compression {
-        Compression::Unknown => Err(Error::other(
-            "Cannot decompress for Compression Unknown",
-        )),
+        Compression::Unknown => Err(Error::other("Cannot decompress for Compression Unknown")),
         Compression::None => Ok(Box::new(compressed_data)),
         Compression::GZip => Ok(Box::new(GzDecoder::new(compressed_data))),
         Compression::Brotli => Ok(Box::new(BrotliDecoder::new(compressed_data, 4096))),
@@ -244,9 +238,7 @@ pub fn decompress_async<'a>(
     compressed_data: &'a mut (impl AsyncRead + Unpin + Send),
 ) -> Result<Box<dyn AsyncRead + Unpin + Send + 'a>> {
     match compression {
-        Compression::Unknown => Err(Error::other(
-            "Cannot decompress for Compression Unknown",
-        )),
+        Compression::Unknown => Err(Error::other("Cannot decompress for Compression Unknown")),
         Compression::None => Ok(Box::new(compressed_data)),
         Compression::GZip => Ok(Box::new(AsyncGzipDecoder::new(BufReader::new(
             compressed_data,

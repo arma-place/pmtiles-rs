@@ -68,7 +68,7 @@
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::multiple_crate_versions)]
 #![allow(clippy::manual_div_ceil)]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod directory;
 #[allow(clippy::ignored_unit_patterns)]

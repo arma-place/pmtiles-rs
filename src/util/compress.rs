@@ -1,33 +1,43 @@
 use crate::Compression;
 
+#[cfg(all(feature = "async", not(target_arch = "wasm32")))]
+use async_compression::futures::{
+    bufread::ZstdDecoder as AsyncZstdDecoder, write::ZstdEncoder as AsyncZstdEncoder,
+};
 #[cfg(feature = "async")]
 use async_compression::futures::{
-    bufread::{
-        BrotliDecoder as AsyncBrotliDecoder, GzipDecoder as AsyncGzipDecoder,
-        ZstdDecoder as AsyncZstdDecoder,
-    },
-    write::{
-        BrotliEncoder as AsyncBrotliEncoder, GzipEncoder as AsyncGzipEncoder,
-        ZstdEncoder as AsyncZstdEncoder,
-    },
+    bufread::{BrotliDecoder as AsyncBrotliDecoder, GzipDecoder as AsyncGzipDecoder},
+    write::{BrotliEncoder as AsyncBrotliEncoder, GzipEncoder as AsyncGzipEncoder},
 };
 use brotli::{CompressorWriter as BrotliEncoder, Decompressor as BrotliDecoder};
 use flate2::{read::GzDecoder, write::GzEncoder};
 #[cfg(feature = "async")]
 use futures::{io::BufReader, AsyncRead, AsyncWrite};
+#[cfg(not(target_arch = "wasm32"))]
 use zstd::{Decoder as ZSTDDecoder, Encoder as ZSTDEncoder};
 
-use std::io::{Cursor, Error, ErrorKind, Read, Result, Write};
+#[cfg(target_arch = "wasm32")]
+use std::io::ErrorKind;
+use std::io::{Cursor, Error, Read, Result, Write};
 
 /// Returns a new instance of [`std::io::Write`] that will emit compressed data to the underlying writer.
+///
+/// <div class="warning">
+///
+///  `ZStd` is not supported on `wasm32` targets. Passing
+/// [`Compression::ZStd`] on a WASM target will return an [`Err`] .
+///
+/// </div>
 ///
 /// # Arguments
 /// * `compression` - Compression to use
 /// * `writer` - Underlying writer to write compressed data to
 ///
 /// # Errors
-/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or an error occurred
-/// while creating the zstd encoder.
+/// Will return [`Err`] if...
+/// - `compression` is set to [`Compression::Unknown`]
+/// - `compression` is set to [`Compression::ZStd`] on a WASM target
+/// - there was an error while creating the zstd encoder
 ///
 /// # Example
 /// ```rust
@@ -46,17 +56,26 @@ pub fn compress<'a>(
     writer: &'a mut impl Write,
 ) -> Result<Box<dyn Write + 'a>> {
     match compression {
-        Compression::Unknown => Err(Error::new(
-            ErrorKind::Other,
-            "Cannot compress for Compression Unknown",
-        )),
+        Compression::Unknown => Err(Error::other("Cannot compress for Compression Unknown")),
         Compression::None => Ok(Box::new(writer)),
         Compression::GZip => Ok(Box::new(GzEncoder::new(
             writer,
             flate2::Compression::default(),
         ))),
         Compression::Brotli => Ok(Box::new(BrotliEncoder::new(writer, 4096, 11, 24))),
-        Compression::ZStd => Ok(Box::new(ZSTDEncoder::new(writer, 0)?.auto_finish())),
+        Compression::ZStd => {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                Ok(Box::new(ZSTDEncoder::new(writer, 0)?.auto_finish()))
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                Err(Error::new(
+                    ErrorKind::Unsupported,
+                    "ZStd compression is not supported on WASM targets",
+                ))
+            }
+        }
     }
 }
 
@@ -64,13 +83,22 @@ pub fn compress<'a>(
 ///
 /// Returns a new instance of [`futures::io::AsyncWrite`](https://docs.rs/futures/latest/futures/io/trait.AsyncWrite.html) that will emit compressed data to the underlying writer.
 ///
+/// <div class="warning">
+///
+///  `ZStd` is not supported on `wasm32` targets. Passing
+/// [`Compression::ZStd`] on a WASM target will return an [`Err`] .
+///
+/// </div>
+///
 /// # Arguments
 /// * `compression` - Compression to use
 /// * `writer` - Underlying writer to write compressed data to
 ///
 /// # Errors
-/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`] or an error occurred
-/// while creating the zstd encoder.
+/// Will return [`Err`] if...
+/// - `compression` is set to [`Compression::Unknown`]
+/// - `compression` is set to [`Compression::ZStd`] on a WASM target
+/// - there was an error while creating the zstd encoder
 ///
 /// # Example
 /// ```rust
@@ -94,26 +122,46 @@ pub fn compress_async<'a>(
     writer: &'a mut (impl AsyncWrite + Unpin + Send),
 ) -> Result<Box<dyn AsyncWrite + Unpin + Send + 'a>> {
     match compression {
-        Compression::Unknown => Err(Error::new(
-            ErrorKind::Other,
-            "Cannot compress for Compression Unknown",
-        )),
+        Compression::Unknown => Err(Error::other("Cannot compress for Compression Unknown")),
         Compression::None => Ok(Box::new(writer)),
         Compression::GZip => Ok(Box::new(AsyncGzipEncoder::new(writer))),
         Compression::Brotli => Ok(Box::new(AsyncBrotliEncoder::new(writer))),
-        Compression::ZStd => Ok(Box::new(AsyncZstdEncoder::new(writer))),
+        Compression::ZStd => {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                Ok(Box::new(AsyncZstdEncoder::new(writer)))
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                Err(Error::new(
+                    ErrorKind::Unsupported,
+                    "ZStd compression is not supported on WASM targets",
+                ))
+            }
+        }
     }
 }
 
 /// Compresses a byte slice and returns the result as a new [`Vec<u8>`].
+///
+/// <div class="warning">
+///
+///  `ZStd` is not supported on `wasm32` targets. Passing
+/// [`Compression::ZStd`] on a WASM target will return an [`Err`] .
+///
+/// </div>
 ///
 /// # Arguments
 /// * `compression` - Compression to use
 /// * `data` - Data to compress
 ///
 /// # Errors
-/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`], there was an error
-/// while creating the zstd encoder or an error occurred while writing to `data`.
+/// Will return [`Err`] if...
+/// - `compression` is set to [`Compression::Unknown`]
+/// - `compression` is set to [`Compression::ZStd`] on a WASM target
+/// - there was an error while creating the zstd encoder
+/// - there was an error occurred while writing to `data`.
+///
 #[allow(clippy::module_name_repetitions)]
 pub fn compress_all(compression: Compression, data: &[u8]) -> Result<Vec<u8>> {
     let mut destination = Vec::<u8>::new();
@@ -131,13 +179,22 @@ pub fn compress_all(compression: Compression, data: &[u8]) -> Result<Vec<u8>> {
 
 /// Returns a new instance of [`std::io::Read`] that will emit uncompressed data from an the underlying reader.
 ///
+/// <div class="warning">
+///
+///  `ZStd` is not supported on `wasm32` targets. Passing
+/// [`Compression::ZStd`] on a WASM target will return an [`Err`] .
+///
+/// </div>
+///
 /// # Arguments
 /// * `compression` - Compression to use
 /// * `compressed_data` - Underlying reader with compressed data
 ///
 /// # Errors
-/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`],there was an
-/// error while creating the zstd decoder.
+/// Will return [`Err`] if...
+/// - `compression` is set to [`Compression::Unknown`]
+/// - `compression` is set to [`Compression::ZStd`] on a WASM target
+/// - there was an error while creating the zstd decoder
 ///
 /// # Example
 /// ```rust
@@ -156,14 +213,23 @@ pub fn decompress<'a>(
     compressed_data: &'a mut impl Read,
 ) -> Result<Box<dyn Read + 'a>> {
     match compression {
-        Compression::Unknown => Err(Error::new(
-            ErrorKind::Other,
-            "Cannot decompress for Compression Unknown",
-        )),
+        Compression::Unknown => Err(Error::other("Cannot decompress for Compression Unknown")),
         Compression::None => Ok(Box::new(compressed_data)),
         Compression::GZip => Ok(Box::new(GzDecoder::new(compressed_data))),
         Compression::Brotli => Ok(Box::new(BrotliDecoder::new(compressed_data, 4096))),
-        Compression::ZStd => Ok(Box::new(ZSTDDecoder::new(compressed_data)?)),
+        Compression::ZStd => {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                Ok(Box::new(ZSTDDecoder::new(compressed_data)?))
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                Err(Error::new(
+                    ErrorKind::Unsupported,
+                    "ZStd decompression is not supported on WASM targets",
+                ))
+            }
+        }
     }
 }
 
@@ -171,13 +237,22 @@ pub fn decompress<'a>(
 ///
 /// Returns a new instance of [`futures::io::AsyncRead`](https://docs.rs/futures/latest/futures/io/trait.AsyncRead.html) that will emit uncompressed data from an the underlying reader.
 ///
+/// <div class="warning">
+///
+///  `ZStd` is not supported on `wasm32` targets. Passing
+/// [`Compression::ZStd`] on a WASM target will return an [`Err`] .
+///
+/// </div>
+///
 /// # Arguments
 /// * `compression` - Compression to use
 /// * `compressed_data` - Underlying reader with compressed data
 ///
 /// # Errors
-/// Will return [`Err`] if `compression` is set to [`Compression::Unknown`],there was an
-/// error while creating the zstd decoder.
+/// Will return [`Err`] if...
+/// - `compression` is set to [`Compression::Unknown`]
+/// - `compression` is set to [`Compression::ZStd`] on a WASM target
+/// - there was an error while creating the zstd decoder
 ///
 #[cfg(feature = "async")]
 pub fn decompress_async<'a>(
@@ -185,10 +260,7 @@ pub fn decompress_async<'a>(
     compressed_data: &'a mut (impl AsyncRead + Unpin + Send),
 ) -> Result<Box<dyn AsyncRead + Unpin + Send + 'a>> {
     match compression {
-        Compression::Unknown => Err(Error::new(
-            ErrorKind::Other,
-            "Cannot decompress for Compression Unknown",
-        )),
+        Compression::Unknown => Err(Error::other("Cannot decompress for Compression Unknown")),
         Compression::None => Ok(Box::new(compressed_data)),
         Compression::GZip => Ok(Box::new(AsyncGzipDecoder::new(BufReader::new(
             compressed_data,
@@ -196,13 +268,32 @@ pub fn decompress_async<'a>(
         Compression::Brotli => Ok(Box::new(AsyncBrotliDecoder::new(BufReader::new(
             compressed_data,
         )))),
-        Compression::ZStd => Ok(Box::new(AsyncZstdDecoder::new(BufReader::new(
-            compressed_data,
-        )))),
+        Compression::ZStd => {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                Ok(Box::new(AsyncZstdDecoder::new(BufReader::new(
+                    compressed_data,
+                ))))
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                Err(Error::new(
+                    ErrorKind::Unsupported,
+                    "ZStd decompression is not supported on WASM targets",
+                ))
+            }
+        }
     }
 }
 
 /// Decompresses a byte slice and returns the result as a new [`Vec<u8>`].
+///
+/// <div class="warning">
+///
+///  `ZStd` is not supported on `wasm32` targets. Passing
+/// [`Compression::ZStd`] on a WASM target will return an [`Err`] .
+///
+/// </div>
 ///
 /// # Arguments
 /// * `compression` - Compression to use
@@ -211,6 +302,7 @@ pub fn decompress_async<'a>(
 /// # Errors
 /// Will return [`Err`] if...
 /// - `compression` is set to [`Compression::Unknown`]
+/// - `compression` is set to [`Compression::ZStd`] on a WASM target
 /// - there was an error while creating the zstd decoder
 /// - there was an error reading the `data`
 /// - `data` is not compressed correctly

@@ -66,12 +66,12 @@ pub struct Directory {
 
 impl Directory {
     /// Returns the number of entries in the directory, also referred to as its 'length'.
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.entries.len()
     }
 
     /// Returns `true` if the directory contains no entries.
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
 

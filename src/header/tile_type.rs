@@ -24,6 +24,9 @@ pub enum TileType {
 
     #[allow(missing_docs)]
     AVIF,
+
+    /// `MapLibre` Tile as defined [here](https://github.com/maplibre/maplibre-tile-spec)
+    MLT,
 }
 
 impl TileType {
@@ -39,6 +42,7 @@ impl TileType {
             Self::Jpeg => Some("image/jpeg"),
             Self::WebP => Some("image/webp"),
             Self::AVIF => Some("image/avif"),
+            Self::MLT => Some("application/vnd.maplibre-vector-tile"),
             Self::Unknown => None,
         }
     }
@@ -65,6 +69,11 @@ mod test {
         assert_eq!(TileType::WebP.http_content_type(), Some("image/webp"));
 
         assert_eq!(TileType::AVIF.http_content_type(), Some("image/avif"));
+
+        assert_eq!(
+            TileType::MLT.http_content_type(),
+            Some("application/vnd.maplibre-vector-tile")
+        );
     }
 
     #[test]
@@ -94,6 +103,10 @@ mod test {
         let (_, tt4) = TileType::read(slice, deku::ctx::Endian::Little)?;
         assert_eq!(tt4, TileType::AVIF);
 
+        let slice = BitSlice::from_slice(&[6]);
+        let (_, tt5) = TileType::read(slice, deku::ctx::Endian::Little)?;
+        assert_eq!(tt5, TileType::MLT);
+
         Ok(())
     }
 
@@ -122,6 +135,10 @@ mod test {
         let mut output = BitVec::new();
         TileType::AVIF.write(&mut output, deku::ctx::Endian::Little)?;
         assert_eq!(output, bitvec!(0, 0, 0, 0, 0, 1, 0, 1));
+
+        let mut output = BitVec::new();
+        TileType::MLT.write(&mut output, deku::ctx::Endian::Little)?;
+        assert_eq!(output, bitvec!(0, 0, 0, 0, 0, 1, 1, 0));
 
         Ok(())
     }
